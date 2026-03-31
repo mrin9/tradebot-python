@@ -1,0 +1,156 @@
+[
+  {
+    "entry_time": "2026-02-06T11:06:00",
+    "exit_time": "2026-02-06T11:21:00+05:30",
+    "symbol": "50114",
+    "intent": "MarketIntentType.LONG",
+    "quantity": 28,
+    "entry_price": 109.0,
+    "exit_price": 106.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -5460.0
+  },
+  {
+    "entry_time": "2026-02-06T11:24:00",
+    "exit_time": "2026-02-06T11:39:00+05:30",
+    "symbol": "50114",
+    "intent": "MarketIntentType.LONG",
+    "quantity": 27,
+    "entry_price": 109.0,
+    "exit_price": 104.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -8775.0
+  },
+  {
+    "entry_time": "2026-02-06T11:45:00",
+    "exit_time": "2026-02-06T11:57:00+05:30",
+    "symbol": "50114",
+    "intent": "MarketIntentType.LONG",
+    "quantity": 25,
+    "entry_price": 110.0,
+    "exit_price": 102.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -13000.0
+  },
+  {
+    "entry_time": "2026-02-06T12:06:00",
+    "exit_time": "2026-02-06T12:18:00+05:30",
+    "symbol": "50114",
+    "intent": "MarketIntentType.LONG",
+    "quantity": 24,
+    "entry_price": 109.0,
+    "exit_price": 103.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -9360.0
+  },
+  {
+    "entry_time": "2026-02-06T12:27:00",
+    "exit_time": "2026-02-06T12:36:00+05:30",
+    "symbol": "50114",
+    "intent": "MarketIntentType.LONG",
+    "quantity": 23,
+    "entry_price": 108.0,
+    "exit_price": 101.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -10465.0
+  },
+  {
+    "entry_time": "2026-02-06T12:39:00",
+    "exit_time": "2026-02-06T12:45:00+05:30",
+    "symbol": "50115",
+    "intent": "MarketIntentType.SHORT",
+    "quantity": 24,
+    "entry_price": 96.0,
+    "exit_price": 90.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -9360.0
+  },
+  {
+    "entry_time": "2026-02-06T12:57:00",
+    "exit_time": "2026-02-06T13:06:00+05:30",
+    "symbol": "50115",
+    "intent": "MarketIntentType.SHORT",
+    "quantity": 22,
+    "entry_price": 98.0,
+    "exit_price": 91.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -10010.0
+  },
+  {
+    "entry_time": "2026-02-06T13:18:00",
+    "exit_time": "2026-02-06T13:27:00+05:30",
+    "symbol": "50115",
+    "intent": "MarketIntentType.SHORT",
+    "quantity": 21,
+    "entry_price": 97.0,
+    "exit_price": 92.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -6825.0
+  },
+  {
+    "entry_time": "2026-02-06T13:36:00",
+    "exit_time": "2026-02-06T13:45:00+05:30",
+    "symbol": "50115",
+    "intent": "MarketIntentType.SHORT",
+    "quantity": 19,
+    "entry_price": 99.0,
+    "exit_price": 90.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -11115.0
+  },
+  {
+    "entry_time": "2026-02-06T13:48:00",
+    "exit_time": "2026-02-06T13:57:00+05:30",
+    "symbol": "50114",
+    "intent": "MarketIntentType.LONG",
+    "quantity": 16,
+    "entry_price": 107.0,
+    "exit_price": 102.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -5200.0
+  },
+  {
+    "entry_time": "2026-02-06T14:06:00",
+    "exit_time": "2026-02-06T14:18:00+05:30",
+    "symbol": "50114",
+    "intent": "MarketIntentType.LONG",
+    "quantity": 15,
+    "entry_price": 109.0,
+    "exit_price": 103.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -5850.0
+  },
+  {
+    "entry_time": "2026-02-06T14:27:00",
+    "exit_time": "2026-02-06T14:36:00+05:30",
+    "symbol": "50114",
+    "intent": "MarketIntentType.LONG",
+    "quantity": 14,
+    "entry_price": 108.0,
+    "exit_price": 101.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -6370.0
+  },
+  {
+    "entry_time": "2026-02-06T14:48:00",
+    "exit_time": "2026-02-06T14:57:00+05:30",
+    "symbol": "50114",
+    "intent": "MarketIntentType.LONG",
+    "quantity": 14,
+    "entry_price": 107.0,
+    "exit_price": 102.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -4550.0
+  },
+  {
+    "entry_time": "2026-02-06T15:06:00",
+    "exit_time": "2026-02-06T15:18:00+05:30",
+    "symbol": "50114",
+    "intent": "MarketIntentType.LONG",
+    "quantity": 13,
+    "entry_price": 109.0,
+    "exit_price": 103.0,
+    "status": "STRATEGY_EXIT",
+    "pnl": -5070.0
+  }
+]

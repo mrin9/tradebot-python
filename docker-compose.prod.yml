@@ -1,0 +1,59 @@
+services:
+  # MongoDB Database
+  mongo:
+    image: mongo:latest
+    container_name: trade-bot-mongo
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "127.0.0.1:27017:27017"
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - trade-net
+
+  # Backend API
+  api:
+    image: ${DOCKER_USER:-yourusername}/trade-bot-api:latest
+    container_name: trade-bot-api
+    restart: always
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/tradebot
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/status" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - trade-net
+
+  # Frontend Dashboard
+  web:
+    image: ${DOCKER_USER:-yourusername}/trade-bot-web:latest
+    container_name: trade-bot-web
+    restart: always
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "4321:80"
+    networks:
+      - trade-net
+
+networks:
+  trade-net:
+    driver: bridge
+
+volumes:
+  mongo_data:

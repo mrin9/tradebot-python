@@ -1,0 +1,95 @@
+# Mac OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.xml
+nosetests.xml
+
+# Node.js / JavaScript (Frontend)
+node_modules/
+dist/
+build/
+.nuxt/
+.output/
+.astro/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDEs / Code Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs and App-Specific Data
+logs/
+*.log
+simulator_service.pid
+.xts_session.json
+
+# AI Tooling
+.gemini/
+
+# Trained ML models (large binaries)
+models/*.joblib
+
+# Local Project Data
+tmp/
+tradebot-java/
