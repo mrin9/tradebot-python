@@ -7,16 +7,16 @@ from pydantic import BaseModel
 from packages.settings import settings
 from packages.utils.mongo import get_db, serialize_mongo
 
-router = APIRouter(prefix="/api/strategy-rules", tags=["strategy-rules"])
+router = APIRouter(prefix="/api/strategy-indicators", tags=["strategy-indicators"])
 
 
 class StrategyIndicator(BaseModel):
     strategyId: str
     name: str = "Default"
     enabled: bool = True
-    timeframe_seconds: int = 180
+    timeframeSeconds: int = 180
     pythonStrategyPath: str | None = None
-    Indicators: list[dict[str, Any]] = []
+    indicators: list[dict[str, Any]] = []
 
 
 @router.get("")

@@ -42,7 +42,7 @@ class IndicatorCalculator:
 
         # Initialize deques for each unique instrument category from config
         for ind in self.config:
-            cat_str = ind.get("InstrumentType", "SPOT")
+            cat_str = ind.get("instrumentType", "SPOT")
             try:
                 cat = InstrumentCategoryType(cat_str)
             except ValueError:
@@ -58,7 +58,7 @@ class IndicatorCalculator:
         self.latest_results.clear()
         
         for ind in self.config:
-            cat_str = ind.get("InstrumentType", "SPOT")
+            cat_str = ind.get("instrumentType", "SPOT")
             try:
                 cat = InstrumentCategoryType(cat_str)
             except ValueError:

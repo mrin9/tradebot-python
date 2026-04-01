@@ -58,9 +58,9 @@ class FundManager:
             self.indicator_calculator.suppress_logs = True
 
         # 3. Load Strategy
-        python_path = self.position_config.get("python_strategy_path") or self.config.get("pythonStrategyPath")
+        python_path = self.position_config.get("pythonStrategyPath") or self.config.get("pythonStrategyPath")
         if not python_path:
-            raise ValueError("No 'python_strategy_path' found in position_config or strategy_config.")
+            raise ValueError("No 'pythonStrategyPath' found in position_config or strategy_config.")
 
         self.strategy = PythonStrategy(script_path=python_path)
         logger.info(f"🐍 Strategy: {python_path}")
@@ -69,16 +69,16 @@ class FundManager:
         self.budget_val, self.budget_type = self._parse_budget(self.position_config["budget"])
         self.initial_budget = self.budget_val if self.budget_type == "inr" else 0.0
         self.fixed_lots = int(self.budget_val) if self.budget_type == "lots" else None
-        self.invest_mode = "fixed" if self.fixed_lots else self.position_config["invest_mode"]
-        self.sl_pct = self.position_config.get("sl_pct", 3.0)
-        self.target_pct = self.position_config.get("target_pct", [2, 3, 4])
-        self.tsl_pct = self.position_config.get("tsl_pct", 0.0)
-        self.tsl_id = self.position_config.get("tsl_id", "trade-ema-5")
-        self.use_be = self.position_config.get("use_be", True)
+        self.invest_mode = "fixed" if self.fixed_lots else self.position_config["investMode"]
+        self.sl_pct = self.position_config.get("slPct", 3.0)
+        self.target_pct = self.position_config.get("targetPct", [2, 3, 4])
+        self.tsl_pct = self.position_config.get("tslPct", 0.0)
+        self.tsl_id = self.position_config.get("tslId", "trade-ema-5")
+        self.use_be = self.position_config.get("useBe", True)
 
-        self.trade_instrument_type = self.position_config["instrument_type"]
-        self.strike_selection = self.position_config["strike_selection"]
-        self.price_source = self.position_config["price_source"]
+        self.trade_instrument_type = self.position_config["instrumentType"]
+        self.strike_selection = self.position_config["strikeSelection"]
+        self.price_source = self.position_config["priceSource"]
         self.record_papertrade_db = self.position_config.get("record_papertrade_db", False)
 
         enum_map = {
@@ -96,9 +96,9 @@ class FundManager:
             instrument_type=instr_enum,
             tsl_pct=self.tsl_pct,
             use_be=self.use_be,
-            pyramid_steps=self.position_config["pyramid_steps"],
-            pyramid_confirm_pts=self.position_config["pyramid_confirm_pts"],
-            price_source=self.position_config["price_source"],
+            pyramid_steps=self.position_config["pyramidSteps"],
+            pyramid_confirm_pts=self.position_config["pyramidConfirmPts"],
+            price_source=self.position_config["priceSource"],
             tsl_id=self.tsl_id,
         )
         self.order_manager = PaperTradingOrderManager()
@@ -113,7 +113,7 @@ class FundManager:
         self.on_signal: Callable[[dict], None] | None = None
         self.latest_tick_prices: dict[int, float] = {}
 
-        self.global_timeframe = self.config["timeframe_seconds"]
+        self.global_timeframe = self.config["timeframeSeconds"]
 
         # Track active ATM instruments being monitored {category: instrument_id}
         self.active_instruments: dict[str, int | str] = {}

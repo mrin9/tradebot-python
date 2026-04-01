@@ -45,12 +45,36 @@ class TradeConfigService:
             normalized["indicators"] = []
 
         # 2. Normalize basic fields
-        if "timeframe" in normalized and "timeframe_seconds" not in normalized:
-            normalized["timeframe_seconds"] = normalized.pop("timeframe")
+        if "timeframe" in normalized and "timeframeSeconds" not in normalized:
+            normalized["timeframeSeconds"] = normalized.pop("timeframe")
+
+        if "timeframe_seconds" in normalized and "timeframeSeconds" not in normalized:
+            normalized["timeframeSeconds"] = normalized.pop("timeframe_seconds")
+
+        # 3. Standardize common configuration fields to camelCase
+        mappings = {
+            "sl_pct": "slPct",
+            "target_pct": "targetPct",
+            "tsl_pct": "tslPct",
+            "tsl_id": "tslId",
+            "use_be": "useBe",
+            "instrument_type": "instrumentType",
+            "strike_selection": "strikeSelection",
+            "invest_mode": "investMode",
+            "python_strategy_path": "pythonStrategyPath",
+            "pyramid_steps": "pyramidSteps",
+            "pyramid_confirm_pts": "pyramidConfirmPts",
+            "price_source": "priceSource",
+            "start_date": "startDate",
+            "end_date": "endDate"
+        }
+        for snake, camel in mappings.items():
+            if snake in normalized and camel not in normalized:
+                normalized[camel] = normalized.pop(snake)
 
         normalized.setdefault("strategyId", "default")
         normalized.setdefault("name", "Unnamed Strategy")
-        normalized.setdefault("timeframe_seconds", settings.DEFAULT_TIMEFRAME)
+        normalized.setdefault("timeframeSeconds", settings.DEFAULT_TIMEFRAME)
 
         # 3. Normalize individual indicators
         indicators = normalized.get("indicators", [])
@@ -115,27 +139,37 @@ class TradeConfigService:
 
         config = {
             "budget": budget,
-            "sl_pct": sl_pct,
-            "target_pct": targets,
-            "tsl_pct": tsl_pct,
-            "tsl_id": tsl_id,
-            "use_be": use_be,
-            "instrument_type": instrument_type.upper(),
-            "strike_selection": strike_selection.upper(),
-            "invest_mode": invest_mode.lower(),
-            "python_strategy_path": python_strategy_path,
-            "pyramid_steps": steps,
-            "pyramid_confirm_pts": pyramid_confirm_pts,
-            "price_source": price_source.lower(),
+            "slPct": sl_pct,
+            "targetPct": targets,
+            "tslPct": tsl_pct,
+            "tslId": tsl_id,
+            "useBe": use_be,
+            "instrumentType": instrument_type.upper(),
+            "strikeSelection": strike_selection.upper(),
+            "investMode": invest_mode.lower(),
+            "pythonStrategyPath": python_strategy_path,
+            "pyramidSteps": steps,
+            "pyramidConfirmPts": pyramid_confirm_pts,
+            "priceSource": price_source.lower(),
             "symbol": symbol,
-            **kwargs,
         }
 
-        # Validation
-        if config["invest_mode"] not in ["fixed", "compound"]:
-            raise ValueError(f"Invalid invest_mode: {invest_mode}. Must be 'fixed' or 'compound'.")
+        # Merge remaining kwargs, ensuring camelCase for known fields
+        for k, v in kwargs.items():
+            camel_k = mappings.get(k, k) if 'mappings' in locals() else k
+            # Heuristic for internal kwargs that didn't go through mappings
+            if k == "sl_pct": camel_k = "slPct"
+            elif k == "target_pct": camel_k = "targetPct"
+            elif k == "tsl_pct": camel_k = "tslPct"
+            
+            if camel_k not in config:
+                config[camel_k] = v
 
-        if config["instrument_type"] not in ["CASH", "OPTIONS", "FUTURES"]:
-            raise ValueError(f"Invalid instrument_type: {instrument_type}")
+        # Validation
+        if config["investMode"] not in ["fixed", "compound"]:
+            raise ValueError(f"Invalid investMode: {investMode}. Must be 'fixed' or 'compound'.")
+
+        if config["instrumentType"] not in ["CASH", "OPTIONS", "FUTURES"]:
+            raise ValueError(f"Invalid instrumentType: {instrumentType}")
 
         return config

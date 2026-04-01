@@ -362,6 +362,10 @@ class BacktestEngine:
             discovery_service=discovery,
             active_grid_ids=set()
         )
+        
+        # Inject backtest dates into config for persistence
+        self.fund_manager.config["startDate"] = self.start_date
+        self.fund_manager.config["endDate"] = self.end_date
 
         self.daily_pnl = {}
         self._last_pnl_checkpoint = 0.0

@@ -195,6 +195,10 @@ class TradePersistence:
                 else:
                     initial_budget = float(budget_raw)
 
+            # Ensure niftyLotSize is in config
+            if "niftyLotSize" not in config:
+                config["niftyLotSize"] = settings.NIFTY_LOT_SIZE
+
             doc = {
                 "sessionId": session_id,
                 "status": "COMPLETED",

@@ -30,7 +30,7 @@ def parse_interval(interval_str: str) -> int:
 async def get_ticks(
     id: str,
     interval: str = Query("1m", alias="candle-interval"),
-    limit: int = 1000,
+    limit: int = 1200,
     start_dt: str | None = Query(None, alias="start-dt"),
     end_dt: str | None = Query(None, alias="end-dt"),
     skip_metadata: bool = Query(False, alias="skip-metadata"),

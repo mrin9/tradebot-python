@@ -15,7 +15,7 @@ INDICATORS = [
         "strategyId": "dummy-reference-strategy",
         "name": "Reference indicators dictionary",
         "enabled": False,
-        "timeframe_seconds": 300,
+        "timeframeSeconds": 300,
         "pythonStrategyPath": None,
         "indicators": [
             {"indicator": "ema-5", "InstrumentType": "SPOT"},
@@ -34,7 +34,7 @@ INDICATORS = [
         "strategyId": "triple-confirmation",
         "name": "Triple Confirmation Momentum Strategy",
         "enabled": True,
-        "timeframe_seconds": 180,
+        "timeframeSeconds": 180,
         "pythonStrategyPath": "packages/tradeflow/python_strategies.py:TripleLockStrategy",
         "indicators": [
             {"indicator": "ema-5", "InstrumentType": "SPOT"},

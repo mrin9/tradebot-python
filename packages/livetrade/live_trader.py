@@ -151,7 +151,7 @@ class LiveTradeEngine:
                 settings.NIFTY_INSTRUMENT_ID,
                 anchor_timestamp,
                 "SPOT",
-                timeframe_seconds=self.fund_manager.global_timeframe,
+                timeframeSeconds=self.fund_manager.global_timeframe,
                 use_api=True,
             )
 
@@ -167,7 +167,7 @@ class LiveTradeEngine:
                         opt_id,
                         anchor_timestamp,
                         opt_cat,
-                        timeframe_seconds=self.fund_manager.global_timeframe,
+                        timeframeSeconds=self.fund_manager.global_timeframe,
                         use_api=True,
                     )
             

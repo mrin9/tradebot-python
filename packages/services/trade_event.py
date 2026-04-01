@@ -113,7 +113,7 @@ class TradeEventService:
                 or fund_manager.config.get("pythonStrategyPath"),
                 "timeframeSeconds": fund_manager.global_timeframe,
                 "indicators": [
-                    f"{ind.get('InstrumentType', 'SPOT').replace('_', '-')}-{ind.get('indicator', 'N/A')}".upper()
+                    f"{ind.get('instrumentType', 'SPOT').replace('_', '-')}-{ind.get('indicator', 'N/A')}".upper()
                     for ind in fund_manager.indicator_calculator.config
                 ],
                 "tslId": fund_manager.tsl_id,
@@ -124,10 +124,13 @@ class TradeEventService:
                 "targets": fund_manager.target_pct,
                 "tslPct": fund_manager.tsl_pct,
                 "useBe": fund_manager.use_be,
+                "startDate": fund_manager.config.get("startDate"),
+                "endDate": fund_manager.config.get("endDate"),
                 "strikeSelection": getattr(fund_manager, "strike_selection", "ATM"),
                 "priceSource": getattr(fund_manager, "price_source", "close"),
-                "pyramidSteps": fund_manager.position_config.get("pyramid_steps"),
-                "pyramidConfirm": fund_manager.position_config.get("pyramid_confirm_pts"),
+                "pyramidSteps": fund_manager.position_config.get("pyramidSteps"),
+                "pyramidConfirm": fund_manager.position_config.get("pyramidConfirmPts"),
+                "niftyLotSize": settings.NIFTY_LOT_SIZE,
             }
         )
         return config
