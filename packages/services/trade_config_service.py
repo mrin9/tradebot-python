@@ -172,4 +172,7 @@ class TradeConfigService:
         if config["instrumentType"] not in ["CASH", "OPTIONS", "FUTURES"]:
             raise ValueError(f"Invalid instrumentType: {instrumentType}")
 
+        if config["slPct"] >= 100.0:
+            raise ValueError(f"Invalid slPct: {sl_pct}. Percentage must be less than 100 to avoid zero/negative Stop Loss.")
+
         return config

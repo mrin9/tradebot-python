@@ -366,6 +366,8 @@ class PositionManager:
         if not self.current_position:
             return
 
+        pos = self.current_position
+
         # Determine price based on source (Open vs Close) for backtests
         if self.price_source == "open":
             current_price = tick.get("o", tick.get("open"))
@@ -379,38 +381,30 @@ class PositionManager:
         if not current_price:
             return
 
-        # Parse realistic exit time from tick if available
-        ts = tick.get("t", tick.get("timestamp"))
-
-        pos = self.current_position
-        if not pos:
-            return
-
         # Determine trade direction once
         is_long = self._is_long_dir(pos.intent)
 
-        # Allow checking on the same timestamp as entry for backtest fidelity.
+        # 1.5 Extract OHLC for "Wide Check" (Backtest fidelity) and Data Integrity
+        # If high/low are missing, they fall back to current_price (LTP)
+        high = tick.get("h", tick.get("high", current_price))
+        low = tick.get("l", tick.get("low", current_price))
+        
+        if (high is not None and high <= 0) or (low is not None and low <= 0):
+            return
 
+        # PnL Calculation (based on latest Close/LTP)
+        lot_size = settings.NIFTY_LOT_SIZE
+        price_diff = (current_price - pos.entry_price) if is_long else (pos.entry_price - current_price)
+        pos.pnl = price_diff * pos.remaining_quantity * lot_size
+
+        # Parse realistic exit time from tick if available
+        ts = tick.get("t", tick.get("timestamp"))
         if (isinstance(ts, (int, float))):
             exit_time = DateUtils.market_timestamp_to_datetime(ts)
         else:
             exit_time = datetime.now(DateUtils.MARKET_TZ).replace(microsecond=0)
 
         pos.current_price = current_price
-        pos.current_price = current_price
-
-        # Determine if we are in a 'Long' direction trade (expecting price to go up)
-        is_long = self._is_long_dir(pos.intent)
-
-        # Extract OHLC for "Wide Check" (Backtest fidelity)
-        # If high/low are missing, they fall back to current_price (LTP)
-        high = tick.get("h", tick.get("high", current_price))
-        low = tick.get("l", tick.get("low", current_price))
-
-        # PnL Calculation (based on latest Close/LTP)
-        lot_size = settings.NIFTY_LOT_SIZE
-        price_diff = (current_price - pos.entry_price) if is_long else (pos.entry_price - current_price)
-        pos.pnl = price_diff * pos.remaining_quantity * lot_size
 
         # 2. Check for Stop Loss or Trailing Stop Loss hits
         # For Long: use 'low' (price drop). For Short: use 'high' (price rise)
@@ -426,7 +420,9 @@ class PositionManager:
             else:
                 reason = "STOP_LOSS"
             
-            self._close_position(pos.stop_loss, exit_time, reason, reason_desc=f"{sl_test_price:.2f}", nifty_price=nifty_price)
+            # Exit at the actual market price (sl_test_price) that breached the SL, 
+            # not just the theoretical SL price. This handles slippage/gaps.
+            self._close_position(sl_test_price, exit_time, reason, reason_desc=f"{sl_test_price:.2f}", nifty_price=nifty_price)
             return
 
         # 3. Targets execution (using High for LONG, Low for SHORT)
@@ -548,6 +544,9 @@ class PositionManager:
         """
         Logic for entering a trade.
         """
+        if price <= 0:
+            logger.warning(f"⚠️ Ignoring entry signal for {self.display_symbol} due to invalid price: {price}")
+            return
         if symbol:
             self.symbol = symbol
         if display_symbol:

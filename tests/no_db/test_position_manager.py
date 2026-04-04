@@ -286,3 +286,34 @@ def test_exact_price_execution(pm_setup):
     pm.update_tick({"h": 150.0, "c": 145.0, "timestamp": now.timestamp() + 600})
     assert pm.trades_history[-1].exit_price == 150.0
     assert "TARGET_1" in pm.trades_history[-1].status or pm.trades_history[-1].status == "EXIT"
+
+def test_ignore_zero_tick(pm_setup):
+    """Verifies that ticks with 0.0 High/Low are ignored to prevent bad-data triggers."""
+    pm, _om = pm_setup
+    now = datetime(2026, 2, 11, 9, 30)
+
+    # 1. Entry at 100. SL at 80.
+    pm.on_signal(
+        {"signal": MarketIntent.LONG, "symbol": "NIFTY", "display_symbol": "NIFTY", "price": 100.0, "timestamp": now}
+    )
+
+    # 2. MALFORMED TICK arrives with Low 0.0. 
+    # Should NOT trigger STOP_LOSS because 0.0 is an anomaly.
+    pm.update_tick({"l": 0.0, "c": 95.0, "timestamp": now.timestamp() + 60})
+    assert pm.current_position is not None  # Position remains open
+    assert pm.current_position.status == "OPEN"
+
+    # 3. Valid tick at 75.0 (legit move). Should trigger SL.
+    pm.update_tick({"l": 75.0, "c": 76.0, "timestamp": now.timestamp() + 120})
+    assert pm.current_position is None
+    assert pm.trades_history[-1].exit_price == 75.0
+
+def test_ignore_zero_entry(pm_setup):
+    """Verifies that entry signals with 0.0 price are ignored."""
+    pm, om = pm_setup
+    now = datetime(2026, 2, 11, 9, 30)
+    pm.on_signal(
+        {"signal": MarketIntent.LONG, "symbol": "NIFTY", "display_symbol": "NIFTY", "price": 0.0, "timestamp": now}
+    )
+    assert pm.current_position is None
+    assert len(om.orders) == 0
