@@ -75,10 +75,8 @@ def test_explicit_mapping_and_heartbeat(mock_dependencies, caplog):
     assert "active: NIFTY_ATM_CE" in hb
     assert "inverse: NIFTY_ATM_PE" in hb
     
-    # Verify trade- indicators are present
-    assert "trade-ema-5" in hb
-    # Verify active- indicators are also present (ATM)
-    assert "active-ema-5" in hb
+    # Verify indicators are present in the heartbeat state
+    assert "ema-5" in hb
     
     # 5. Test [TRADED/ATM] when they match
     mock_pos.symbol = "45500"

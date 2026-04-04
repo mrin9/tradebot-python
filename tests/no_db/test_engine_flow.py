@@ -25,8 +25,9 @@ def test_engine_initialization():
         patch("packages.xts.xts_session_manager.XtsSessionManager.get_market_data_socket"),
     ):
         engine = LiveTradeEngine(mock_strategy, pos_cfg)
-        # Session ID format: mar12-0923-triple-xyz (Month/Day-Time-Prefix-Rand)
-        assert len(engine.session_id.split("-")) == 4
+        # Session ID format: apr04-1321-triple-mbj-python (Date-Time-Prefix-Rand-python)
+        assert len(engine.session_id.split("-")) == 5
+        assert engine.session_id.endswith("-python")
         assert engine.fund_manager.initial_budget == 100000
 
     print("✅ Engine Initialization Passed.")

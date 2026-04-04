@@ -116,6 +116,7 @@ class SimpleMACDStrategy:
         self.ce_prev_hist = None
         self.pe_prev_hist = None
         self.was_warming_up = True
+        self._last_trade_date = None
 
     def on_resampled_candle_closed(
         self, candle: CandleType, indicators: dict[str, Any], current_position_intent: MarketIntentType | None = None
@@ -129,6 +130,12 @@ class SimpleMACDStrategy:
 
         if candle_dt.time() < start_time:
             return SignalType.NEUTRAL, f"PYTHON: BEFORE START TIME ({settings.TRADE_START_TIME})", 0.0
+
+        # Reset stale state on day change to prevent false crossovers
+        if self._last_trade_date != candle_dt.date():
+            self.ce_prev_hist = None
+            self.pe_prev_hist = None
+            self._last_trade_date = candle_dt.date()
 
         is_warming_up = indicators.get("meta-is-warming-up", False)
         ce_hist = indicators.get("ce-macd-hist")
@@ -291,7 +298,7 @@ class SuperTrendAndPriceCrossStrategy:
         # 2. Entry Logic
         if current_position_intent is None:
             # Price cross ABOVE ST line OR already above on first live candle
-            crossover = price > st_line and st_line_prev is not None and candle.get("o", 0) <= st_line_prev
+            crossover = price > st_line and st_line_prev is not None and candle.get("o", candle.get("c", price)) <= st_line_prev
             continuation = is_first_live_candle and (price > st_line)
 
             if crossover or continuation:

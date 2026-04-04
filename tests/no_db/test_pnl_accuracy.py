@@ -147,4 +147,4 @@ def test_intra_candle_sl_hit():
     # Should be closed
     assert pm.current_position is None
     assert pm.trades_history[-1].status == "STOP_LOSS"
-    assert pm.trades_history[-1].exit_price == 85.0  # SL hit at 85
+    assert pm.trades_history[-1].exit_price == 80.0  # Exits at actual breach price (Low), not theoretical SL

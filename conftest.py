@@ -23,38 +23,36 @@ def pytest_runtest_setup(item):
     3. Prints a beautiful header with context-aware metadata.
     """
     from packages.utils.mongo import MongoRepository
+    import packages.utils.mongo as mongo_module
 
     # 1. Default DB Setup
     settings.DB_NAME = "tradebot_test"
     MongoRepository.close()
 
-    # 2. Isolation Enforcement (The 'Safety Net')
+    # 2. Save the REAL get_db once (before any patching)
+    if not hasattr(mongo_module, "_original_get_db"):
+        mongo_module._original_get_db = mongo_module.MongoRepository.get_db
+
+    # 3. Isolation Enforcement (The 'Safety Net')
     test_path = str(item.fspath)
     is_no_db = "tests/no_db/" in test_path
 
     if is_no_db:
-        # Monkeypatch get_db to raise error if called unexpectedly
         def forbidden_get_db(*args, **kwargs):
             raise RuntimeError(
                 f"❌ ACCESS DENIED: Test '{item.name}' is in 'tests/no_db/' "
                 " but attempted to access MongoDB! Isolation breach detected."
             )
 
-        # We patch both the class method and the standalone helper
-        import packages.utils.mongo as mongo_module
-
-        old_get_db = mongo_module.MongoRepository.get_db
         mongo_module.MongoRepository.get_db = forbidden_get_db
         mongo_module.get_db = forbidden_get_db
 
     yield  # Execute fixtures and test
 
-    # 3. Restore get_db if it was patched
+    # 4. Always restore the REAL get_db after no_db tests
     if is_no_db:
-        import packages.utils.mongo as mongo_module
-
-        mongo_module.MongoRepository.get_db = old_get_db
-        mongo_module.get_db = old_get_db
+        mongo_module.MongoRepository.get_db = mongo_module._original_get_db
+        mongo_module.get_db = mongo_module._original_get_db
 
     # 4. Reporting Header
     db_name = getattr(settings, "DB_NAME", "UNKNOWN")

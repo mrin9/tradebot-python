@@ -245,7 +245,7 @@ class FundManager:
         else:
             price = market_data.get("c", market_data.get("close", market_data.get("p")))
 
-        if price is None:
+        if price is None or price <= 0:
             return
 
         # 0. Tick Normalization: If this is a raw tick (no OHLC), populate OHLC for downstream compatibility
@@ -303,14 +303,9 @@ class FundManager:
                     category = "SPOT"  # Fallback for futures/cash
 
         if not category:
-            if self.is_backtest and (self.monitored_instrument_ids and int(inst_id) in self.monitored_instrument_ids):
-                # Heuristic: it's an option. We don't know if it's CE or PE without asking discovery_service,
-                # but IndicatorCalculator can handle OPTIONS_BOTH or we can just pick one (it only affects prefix).
-                # To be safe, we just let it be processed.
-                 category = "CE" # Default prefix for pre-warming (doesn't matter much for strategy evaluation)
-            elif not self.is_backtest:
-                  # In live mode if it reached here, it's one of the options we subscribed to
-                  category = "CE"
+            if (self.is_backtest and self.monitored_instrument_ids and int(inst_id) in self.monitored_instrument_ids) or (not self.is_backtest):
+                # Resolve actual option type from discovery cache instead of guessing
+                category = self.discovery_service.get_option_type(int(inst_id))
             else:
                 return  # Data for instrument not actively monitored
 
@@ -636,6 +631,11 @@ class FundManager:
         # If for some reason tick price isn't in cache, use the last known price
         if not eod_price:
             eod_price = pos.current_price
+
+        # Guard against settling at zero — use entry price as absolute last resort
+        if not eod_price or eod_price <= 0:
+            logger.error(f"⚠️ EOD price is {eod_price} for {pos.symbol}. Using entry price {pos.entry_price} as fallback.")
+            eod_price = pos.entry_price
 
         eod_time = DateUtils.market_timestamp_to_datetime(timestamp)
         nifty_price = self.latest_tick_prices.get(26000)

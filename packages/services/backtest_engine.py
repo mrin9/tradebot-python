@@ -378,7 +378,7 @@ class BacktestEngine:
         )
 
     def record_daily_pnl(self, day_str: str):
-        current_total_pnl = sum([t.pnl for t in self.fund_manager.position_manager.trades_history])
+        current_total_pnl = self.fund_manager.position_manager.session_realized_pnl
         daily_increment = current_total_pnl - self._last_pnl_checkpoint
         self.daily_pnl[day_str] = daily_increment
         self._last_pnl_checkpoint = current_total_pnl
@@ -404,7 +404,7 @@ class BacktestEngine:
     def generate_report(self):
         pm = self.fund_manager.position_manager
         trades = pm.trades_history
-        total_pnl = sum([t.pnl for t in trades])
+        total_pnl = pm.session_realized_pnl
         budget_val = self.fund_manager.initial_budget
 
         # ROI Fix: If budget was defined in 'lots', initial_budget is 0.
