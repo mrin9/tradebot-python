@@ -154,10 +154,9 @@ class TradeConfigService:
             "symbol": symbol,
         }
 
-        # Merge remaining kwargs, ensuring camelCase for known fields
+        # Merge remaining kwargs
         for k, v in kwargs.items():
-            camel_k = mappings.get(k, k) if 'mappings' in locals() else k
-            # Heuristic for internal kwargs that didn't go through mappings
+            camel_k = k
             if k == "sl_pct": camel_k = "slPct"
             elif k == "target_pct": camel_k = "targetPct"
             elif k == "tsl_pct": camel_k = "tslPct"
@@ -167,10 +166,10 @@ class TradeConfigService:
 
         # Validation
         if config["investMode"] not in ["fixed", "compound"]:
-            raise ValueError(f"Invalid investMode: {investMode}. Must be 'fixed' or 'compound'.")
+            raise ValueError(f"Invalid investMode: {config['investMode']}. Must be 'fixed' or 'compound'.")
 
         if config["instrumentType"] not in ["CASH", "OPTIONS", "FUTURES"]:
-            raise ValueError(f"Invalid instrumentType: {instrumentType}")
+            raise ValueError(f"Invalid instrumentType: {config['instrumentType']}")
 
         if config["slPct"] >= 100.0:
             raise ValueError(f"Invalid slPct: {sl_pct}. Percentage must be less than 100 to avoid zero/negative Stop Loss.")

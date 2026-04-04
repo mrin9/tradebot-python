@@ -72,6 +72,7 @@ class LiveTradeEngine:
         self.is_running = False
         self.has_warmed_up = False
         self.current_atm_strike = None
+        self._warmup_tick_buffer: list[dict] = []
 
     def start(self):
         logger.info(
@@ -122,9 +123,11 @@ class LiveTradeEngine:
 
         # 1. Warmup Check
         if not self.has_warmed_up:
+            # Buffer ticks instead of dropping them
+            self._warmup_tick_buffer.append(tick)
             if not self.fund_manager.is_warming_up:
                 threading.Thread(target=self._warm_up, args=(tick["t"],), daemon=True).start()
-            return  # Drop ticks during warmup, they'll be processed after resub
+            return
 
         # 2. FundManager Feed
         self.fund_manager.on_tick_or_base_candle(tick)
@@ -175,6 +178,13 @@ class LiveTradeEngine:
             self.fund_manager.latest_indicators_state = self.fund_manager._get_mapped_indicators()
 
             self.has_warmed_up = True
+
+            # Replay buffered ticks that arrived during warmup
+            buffered = self._warmup_tick_buffer
+            self._warmup_tick_buffer = []
+            logger.info(f"🔄 Replaying {len(buffered)} buffered ticks from warmup period...")
+            for buffered_tick in buffered:
+                self.fund_manager.on_tick_or_base_candle(buffered_tick)
 
             # Record INIT event with enriched config
             self.event_service.record_init(self.fund_manager, mode="live")

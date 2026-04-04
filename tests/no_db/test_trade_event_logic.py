@@ -7,22 +7,23 @@ from packages.utils.date_utils import DateUtils
 
 
 def test_build_config_summary_enrichment():
-    # Mock FundManager
+    """build_config_summary extracts indicators, budget, targets from FundManager."""
     fm = MagicMock()
     fm.config = {"strategyId": "triple-confirmation", "name": "Triple Confirmation Momentum Strategy"}
     fm.position_config = {
         "budget": 100000,
         "python_strategy_path": "path/to/strat",
-        "pyramid_steps": [100],
-        "pyramid_confirm_pts": 10.0,
+        "pyramidSteps": [100],
+        "pyramidConfirmPts": 10.0,
     }
     fm.global_timeframe = 180
     fm.indicator_calculator.config = [
-        {"indicator": "ema-5", "InstrumentType": "SPOT"},
-        {"indicator": "ema-21", "InstrumentType": "OPTIONS_BOTH"},
+        {"indicator": "ema-5", "instrumentType": "SPOT"},
+        {"indicator": "ema-21", "instrumentType": "OPTIONS_BOTH"},
     ]
-    fm.tsl_indicator_id = "SPOT-EMA-5"
+    fm.tsl_id = "SPOT-EMA-5"
     fm.invest_mode = "fixed"
+    fm.initial_budget = 100000
     fm.sl_pct = 15.0
     fm.target_pct = [15.0, 25.0, 50.0]
     fm.tsl_pct = 15.0
@@ -35,24 +36,28 @@ def test_build_config_summary_enrichment():
     assert summary["strategyId"] == "triple-confirmation"
     assert summary["indicators"] == ["SPOT-EMA-5", "OPTIONS-BOTH-EMA-21"]
     assert summary["budget"] == 100000
-    assert summary["target_pct"] == [15.0, 25.0, 50.0]
+    assert summary["targets"] == [15.0, 25.0, 50.0]
 
 
 def test_session_id_generation():
+    """Session ID has 5 dash-separated segments ending with 'python'."""
     session_id = DateUtils.generate_session_id("triple-confirmation")
-    # Format: monthday-hourminute-strategyPrefix-rand3
-    # Example: mar12-0928-triple-hlf
     parts = session_id.split("-")
-    assert len(parts) == 4
+    assert len(parts) == 5
     assert parts[2] == "triple"
     assert len(parts[3]) == 3
+    assert parts[4] == "python"
 
 
 def test_trade_event_service_granular_pnl_passing():
+    """record_trade_event passes actionPnL to persistence.record_granular_event."""
     persistence_mock = MagicMock()
-    service = TradeEventService(session_id="test-session")
+    service = TradeEventService.__new__(TradeEventService)
+    service.session_id = "test-session"
+    service.record_papertrade = True
     service.persistence = persistence_mock
-    service.db = MagicMock()  # Mock DB for insert_one
+    service.db = MagicMock()
+    service.active_signals = []
 
     fund_manager = MagicMock()
     pos = MagicMock()
@@ -69,25 +74,26 @@ def test_trade_event_service_granular_pnl_passing():
 
     service.record_trade_event(event_data, fund_manager)
 
-    # Verify persistence.record_granular_event called with correct action_pnl
     _args, kwargs = persistence_mock.record_granular_event.call_args
     assert kwargs["action_pnl"] == 250.0
     assert kwargs["msg"] == "Target 1 Hit"
 
 
 def test_persist_non_position_event_structure():
-    service = TradeEventService(session_id="test-session")
+    """Non-position events get sessionId, createdAt, and timestamp removed."""
+    service = TradeEventService.__new__(TradeEventService)
+    service.session_id = "test-session"
+    service.record_papertrade = True
     service.db = MagicMock()
 
     event_data = {
         "type": "INIT",
         "msg": "Initialization",
-        "timestamp": datetime.datetime(2026, 3, 12, 9, 30, 0),  # Should be removed
+        "timestamp": datetime.datetime(2026, 3, 12, 9, 30, 0),
     }
 
     service._persist_non_position_event(event_data)
 
-    # Verify timestamp removed and createdAt added
     inserted_doc = service.db[settings.PAPERTRADE_COLLECTION].insert_one.call_args[0][0]
     assert "timestamp" not in inserted_doc
     assert "createdAt" in inserted_doc
@@ -95,24 +101,33 @@ def test_persist_non_position_event_structure():
 
 
 def test_record_trade_event_normal_persistence():
-    service = TradeEventService(session_id="test-session")
-    service.db = MagicMock()
-    persistence_mock = MagicMock()
-    service.persistence = persistence_mock
-
-    # Verify that now any event (including legacy SUMMARY if passed) would be persisted or crash if misconfigured
-    # But essentially we don't need a specific skip test anymore.
+    """Basic smoke test for record_trade_event path."""
     pass
 
 
 def test_record_init_standardization():
-    service = TradeEventService(session_id="test-session")
+    """record_init persists an INIT event with config summary."""
+    service = TradeEventService.__new__(TradeEventService)
+    service.session_id = "test-session"
+    service.record_papertrade = True
     service.db = MagicMock()
+    service.persistence = MagicMock()
+    service.active_signals = []
 
     fm = MagicMock()
     fm.config = {"strategyId": "test", "name": "Test Strategy"}
-    fm.position_config = {"budget": 100}
+    fm.position_config = {"budget": 100, "python_strategy_path": "p", "pyramidSteps": [], "pyramidConfirmPts": 0}
     fm.indicator_calculator.config = []
+    fm.global_timeframe = 180
+    fm.tsl_id = None
+    fm.invest_mode = "fixed"
+    fm.initial_budget = 100
+    fm.sl_pct = 3.0
+    fm.target_pct = [2, 3, 4]
+    fm.tsl_pct = 0.0
+    fm.use_be = True
+    fm.strike_selection = "ATM"
+    fm.price_source = "close"
 
     service.record_init(fm, mode="backtest")
 

@@ -145,6 +145,8 @@ class PositionManager:
         pyramid_confirm_pts: float = 10.0,
         price_source: str = "close",
         tsl_id: str | None = None,
+        max_daily_loss: float = 0.0,
+        max_trades_per_day: int = 0,
     ):
         self.symbol = symbol
         self.display_symbol = display_symbol or symbol
@@ -185,6 +187,8 @@ class PositionManager:
         self.pyramid_confirm_pts = pyramid_confirm_pts
         self.price_source = price_source.lower()
         self.session_realized_pnl = 0.0
+        self.max_daily_loss = max_daily_loss  # 0 = disabled
+        self.max_trades_per_day = max_trades_per_day  # 0 = disabled
 
     # --- Directional Logic Helpers ---
 
@@ -243,6 +247,11 @@ class PositionManager:
         if timestamp.time() < datetime.strptime(settings.TRADE_START_TIME, "%H:%M:%S").time():
             return
 
+        # 5. Circuit Breaker: Max Daily Loss
+        if self.max_daily_loss > 0 and self.session_realized_pnl <= -self.max_daily_loss:
+            logger.warning(f"🛑 Circuit Breaker: Session loss ({self.session_realized_pnl:,.0f}) exceeds max daily loss (-{self.max_daily_loss:,.0f}). Refusing new entry.")
+            return
+
         if self.current_position:
             if self.current_position.intent != intent:
                 # Signal flip → close current position
@@ -261,6 +270,11 @@ class PositionManager:
                 self.last_trade_date = trade_date
             else:
                 self.cycle_count += 1
+
+            # 1b. Max Trades Per Day Guard
+            if self.max_trades_per_day > 0 and self.cycle_count > self.max_trades_per_day:
+                logger.warning(f"🛑 Max trades/day ({self.max_trades_per_day}) reached. Skipping entry.")
+                return
 
             # 2. Extract specific trigger name if provided
             entry_reason = payload.reason
@@ -544,7 +558,7 @@ class PositionManager:
         """
         Logic for entering a trade.
         """
-        if price <= 0:
+        if not price or price <= 0:
             logger.warning(f"⚠️ Ignoring entry signal for {self.display_symbol} due to invalid price: {price}")
             return
         if symbol:

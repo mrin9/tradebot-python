@@ -14,23 +14,23 @@ def test_fund_manager_dynamic_atm_resolution():
         "strategyId": "test-atm",
         "name": "ATM Test",
         "indicators": [],
-        "timeframe_seconds": 60,
+        "timeframeSeconds": 60,
         "pythonStrategyPath": "packages/tradeflow/python_strategies.py:TripleLockStrategy",
     }
     position_config = {
         "symbol": "NIFTY",
         "budget": 10000,
-        "invest_mode": "fixed",
-        "instrument_type": "OPTIONS",
-        "strike_selection": "ATM",
-        "price_source": "close",
-        "sl_pct": 15.0,
-        "target_pct": [15, 25, 45],
-        "tsl_pct": 15.0,
-        "use_be": True,
-        "use_break_even": False,
-        "pyramid_steps": 0,
-        "pyramid_confirm_pts": 0,
+        "investMode": "fixed",
+        "instrumentType": "OPTIONS",
+        "strikeSelection": "ATM",
+        "priceSource": "close",
+        "slPct": 15.0,
+        "targetPct": [15, 25, 45],
+        "tslPct": 15.0,
+        "tslId": "trade-ema-5",
+        "useBe": True,
+        "pyramidSteps": [100],
+        "pyramidConfirmPts": 0,
     }
 
     # 2. Mock Services
@@ -42,16 +42,17 @@ def test_fund_manager_dynamic_atm_resolution():
     mock_history = MagicMock()
 
     # Dynamic ATM resolution logic
-    mock_discovery.get_atm_strike.side_effect = lambda p: round(p / 50) * 50
+    mock_discovery.get_atm_strike = MagicMock(return_value=22000)
     
-    def mock_resolve(atm_strike, is_ce, current_ts):
+    def mock_get_target_strike(spot_price, strike_selection, is_ce, current_ts):
+        atm_strike = round(spot_price / 50) * 50
         if atm_strike == 22000:
-            return (1001, "NIFTY CE 22000") if is_ce else (1002, "NIFTY PE 22000")
+            return (atm_strike, 1001, "NIFTY CE 22000") if is_ce else (atm_strike, 1002, "NIFTY PE 22000")
         elif atm_strike == 22100:
-            return (2001, "NIFTY CE 22100") if is_ce else (2002, "NIFTY PE 22100")
-        return (3000, f"NIFTY { 'CE' if is_ce else 'PE'} {atm_strike}")
-        
-    mock_discovery.resolve_option_contract.side_effect = mock_resolve
+            return (atm_strike, 2001, "NIFTY CE 22100") if is_ce else (atm_strike, 2002, "NIFTY PE 22100")
+        return (atm_strike, 3000, f"NIFTY {'CE' if is_ce else 'PE'} {atm_strike}")
+
+    mock_discovery.get_target_strike.side_effect = mock_get_target_strike
 
     from packages.tradeflow.types import SignalType
 

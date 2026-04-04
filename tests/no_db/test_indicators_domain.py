@@ -18,8 +18,8 @@ from packages.tradeflow.types import InstrumentCategoryType
 def calc_instance():
     """Mock indicator config from strategy_indicator DB format."""
     config = [
-        {"indicatorId": "fast-ema", "indicator": "ema-5", "InstrumentType": "SPOT"},
-        {"indicatorId": "rsi", "indicator": "rsi-14", "InstrumentType": "CE"},
+        {"indicatorId": "fast-ema", "indicator": "ema-5", "instrumentType": "SPOT"},
+        {"indicatorId": "rsi", "indicator": "rsi-14", "instrumentType": "CE"},
     ]
     return IndicatorCalculator(indicators_config=config, max_window_size=50)
 

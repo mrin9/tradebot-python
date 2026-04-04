@@ -261,7 +261,7 @@ def test_trade_start_time_guard(pm_setup):
     assert om.orders[0]["timestamp"] == valid_time
 
 def test_exact_price_execution(pm_setup):
-    """Verifies that exit prices match the actual tick prices (Low/High) when gapped through."""
+    """Verifies that SL exits at actual breach price and targets exit at actual hit price."""
     pm, _om = pm_setup
     now = datetime(2026, 2, 11, 9, 30)
 
@@ -271,12 +271,11 @@ def test_exact_price_execution(pm_setup):
     )
 
     # 2. Tick arrives with Low 75.0 (breaches SL 80.0). 
-    # Should exit at 75.0, not 80.0
+    # Exits at actual breach price 75.0 (market-order reality)
     pm.update_tick({"l": 75.0, "c": 76.0, "timestamp": now.timestamp() + 60})
     assert pm.current_position is None
     assert pm.trades_history[-1].exit_price == 75.0
     assert pm.trades_history[-1].status == "STOP_LOSS"
-
     # 3. New Trade for Target verification
     pm.on_signal(
         {"signal": MarketIntent.LONG, "symbol": "NIFTY", "display_symbol": "NIFTY", "price": 100.0, "timestamp": now + timedelta(minutes=5)}
