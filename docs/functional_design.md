@@ -56,7 +56,7 @@ The core engine relies on two primary mechanisms of data progression: **Tick Eve
   - Validating contract drift.
   - Updating the `PositionManager` with real-time instrument prices so SL and Target hits can be evaluated dynamically, *intra-candle*.
   - Handing the data chunk into the `CandleResampler`.
-- **Candle Close Event (`_on_resampled_candle_closed`)**: This triggers far less frequently—only when the `CandleResampler` observes that accumulated ticks have crossed the boundary of its higher timeframe (e.g., forming a solid 5-minute candle).
+- **Candle Close Event (`_on_resampled_candle_closed`)**: This triggers far less frequently—only when the `CandleResampler` observes that accumulated ticks have crossed the boundary of its higher timeframe (e.g., forming a complete 3-minute candle).
   - This is the **decision point** of the engine.
   - Indicators are computed ONLY on a candle close event.
   - The Python Strategy file is executed ONLY on a candle close event.
@@ -127,13 +127,13 @@ This lifecycle is **identical** across backtests and live trading; only the **so
 Module: `packages/tradeflow/candle_resampler.py`  
 Class: `CandleResampler`
 
-**Goal**: Convert smaller timeframe candles or ticks into the higher‑level timeframe used by the strategy (e.g., 5‑minute bars for Triple Lock).
+**Goal**: Convert smaller timeframe candles or ticks into the higher‑level timeframe used by the strategy (e.g., 3‑minute bars for Triple Lock).
 
 ### 2.2 How It Works
 
 - Constructed with:
   - `instrument_id`
-  - `interval_seconds` (e.g., 300 for 5‑minute candles).
+  - `interval_seconds` (e.g., 180 for 3‑minute candles).
   - `on_candle_closed` callback (usually a method on `FundManager`).
 - For each incoming candle (or normalized tick):
   - Computes the period start:
@@ -146,7 +146,7 @@ Class: `CandleResampler`
 
 ### 2.3 Why It Matters
 
-Strategies are almost always designed in terms of **higher‑timeframe candles** (e.g., 5‑minute NIFTY candles).  
+Strategies are almost always designed in terms of **higher‑timeframe candles** (e.g., 3‑minute NIFTY candles).  
 `CandleResampler` ensures:
 
 - Compatible time buckets between backtest and live.
@@ -402,7 +402,7 @@ Understanding these differences is crucial when comparing backtest vs live perfo
 While backtesting reads a closed-loop timeline from the database, **live trading** requires a critical interplay between daily database updates and a live socket stream. Before the active `LiveTradeEngine` can analyze a single incoming tick, the following dependencies MUST be satisfied:
 
 1. **`instrument_master` Refresh**: This MongoDB collection MUST be updated daily (`python apps/cli/main.py update_master`). The live feed streams numerical instrument IDs, not human-readable symbols. The engine requires the active master table to translate arbitrary IDs into specific strike prices, options types (`CE`/`PE`), and expiries.
-2. **Historical XTS API Warmup**: If a strategy depends on a moving average or supertrend on a 5-minute chart, that indicator is mathematically invalid until it accumulates sufficient history. At startup, the `FundManager` triggers a **Live Warmup Phase**. It queries the `MarketHistoryService` with `use_api=True`, which fetches the required historical timeframe blocks (e.g., the last few days of 1-minute candles) directly from the **XTS Historical Data API**, bypassing the local MongoDB collections. This guarantees the engine has up-to-the-minute accurate data for indicators, regardless of whether local sync scripts were run that morning.
+2. **Historical XTS API Warmup**: If a strategy depends on a moving average or supertrend on a 3-minute chart, that indicator is mathematically invalid until it accumulates sufficient history. At startup, the `FundManager` triggers a **Live Warmup Phase**. It queries the `MarketHistoryService` with `use_api=True`, which fetches the required historical timeframe blocks (e.g., the last few days of 1-minute candles) directly from the **XTS Historical Data API**, bypassing the local MongoDB collections. This guarantees the engine has up-to-the-minute accurate data for indicators, regardless of whether local sync scripts were run that morning.
 3. **Dynamic Strike Computation (`ContractDiscoveryService`)**: The engine never hardcodes the target option symbol. When the engine begins streaming live Nifty spot ticks via the socket, `ContractDiscoveryService`:
    - Takes the live spot price from the **live XTS stream** (e.g., `22,431`).
    - Rounds it to the nearest established ATM strike (e.g., `22,450`).

@@ -246,13 +246,13 @@ python apps/cli/main.py backtest \
   [--mode TEXT] \
   [--budget TEXT] \
   [--invest-mode TEXT] \
-  [--sl-points FLOAT] \
+  [--sl-pct FLOAT] \
   [--use-be / --no-use-be] \
-  [--tsl-points FLOAT] \
+  [--tsl-pct FLOAT] \
   [--strike-selection TEXT] \
   [--pyramid-steps TEXT] \
   [--pyramid-confirm-pts FLOAT] \
-  [--target-points TEXT]
+  [--target-pct TEXT]
 ```
 
 **Options & Defaults (from function signature)**
@@ -276,15 +276,15 @@ python apps/cli/main.py backtest \
 - `--invest-mode, -i TEXT`
   - Default: `None`
   - Prompted as `"fixed"` or `"compound"` if not provided.
-- `--sl-points, -l FLOAT`
+- `--sl-pct, -l FLOAT`
   - Default: `None`
-  - Prompted; default `"15"` if omitted.
+  - Default: `10.0`. Stop loss as a percentage of entry premium.
 - `--use-be, -e`
   - Default: `None`
   - Prompted as `"Yes"`/`"No"`; interpreted as boolean.
-- `--tsl-points, -L FLOAT`
+- `--tsl-pct, -L FLOAT`
   - Default: `0.0`
-  - If left as `None` via interactive prompt, can be used with indicator‑based or point‑based TSL.
+  - Trailing stop loss percentage. Set to 0 to disable.
 - `--strike-selection, -S TEXT`
   - Default: `None`
   - Help: `Option Strike Type (ATM, ITM-x, OTM-x where x is offset)`
@@ -295,9 +295,9 @@ python apps/cli/main.py backtest \
 - `--pyramid-confirm-pts FLOAT`
   - Default: `None`
   - Prompted; default `"10"` when pyramiding is enabled.
-- `--target-points, -t TEXT`
+- `--target-pct, -t TEXT`
   - Default: `None`
-  - Prompted; default `"15,25,50"` if omitted.
+  - Default: `"10,20,30"`. Comma-separated target percentages.
 
 **Description**
 
@@ -312,13 +312,13 @@ python apps/cli/main.py backtest \
 **Command**
 
 ```bash
-python apps/cli/main.py live_trade \
+python apps/cli/main.py live-trade \
   [--strategy-id TEXT] \
   [--strike-selection TEXT] \
   [--budget TEXT] \
-  [--sl-points FLOAT] \
-  [--target-points TEXT] \
-  [--tsl-points FLOAT] \
+  [--sl-pct FLOAT] \
+  [--target-pct TEXT] \
+  [--tsl-pct FLOAT] \
   [--use-be / --no-use-be] \
   [--tsl-id TEXT] \
   [--record-papertrade / --no-record-papertrade] \
@@ -335,16 +335,16 @@ python apps/cli/main.py live_trade \
   - Support for `ATM`, `ITM-x`, `OTM-x` (where x is the offset).
 - `--budget, -b TEXT`
   - Default: `"200000-inr"`
-- `--sl-points, -l FLOAT`
-  - Default: `15.0`
-- `--target-points, -t TEXT`
-  - Default: `"15,25,45"`
-- `--tsl-points, -L FLOAT`
+- `--sl-pct, -l FLOAT`
+  - Default: `10.0`
+- `--target-pct, -t TEXT`
+  - Default: `"10,20,30"`
+- `--tsl-pct, -L FLOAT`
   - Default: `0.0`
 - `--use-be, -e / --no-use-be`
   - Default: `True`
 - `--tsl-id, -T TEXT`
-  - Default: `"active-ema-5"`
+  - Default: `"trade-ema-5"`
 - `--record-papertrade / --no-record-papertrade`
   - Default: `True`
 - `--debug / --no-debug`

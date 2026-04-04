@@ -13,7 +13,7 @@ Typical deployment (minimal stack):
   - Responsibilities:
     - Run CLI commands (`apps/cli/main.py`) for maintenance tasks.
     - Run backtests (`pytest` and `tests/backtest/backtest_runner`).
-    - Run the live trading engine (`LiveTradeEngine` via `apps/cli/main.py live_trade`).
+    - Run the live trading engine (`LiveTradeEngine` via `apps/cli/main.py live-trade`).
 - **MongoDB Container (`mongo`)**
   - Image: `mongo:latest`
   - Volumes:
@@ -63,10 +63,10 @@ Key environment variables:
 
 - **Mongo / DB**
   - `DB_NAME` (e.g. `tradebot`, `tradebot_test`, `tradebot_frozen`)
-  - `MONGODB_URI` or `MONGO_HOST`, `MONGO_PORT` (depending on your settings module)
+  - `MONGODB_URI` (e.g. `mongodb://mongo:27017/`)
 - **XTS**
-  - `XTS_MARKET_KEY`, `XTS_MARKET_SECRET`
-  - `XTS_INTERACTIVE_KEY`, `XTS_INTERACTIVE_SECRET`
+  - `MARKET_API_KEY`, `MARKET_API_SECRET`
+  - `INTERACTIVE_API_KEY`, `INTERACTIVE_API_SECRET`
 
 In `docker-compose.yml`, ensure:
 
@@ -220,7 +220,7 @@ From there you can:
 ```bash
 python -m pip list
 python apps/cli/main.py menu
-python apps/cli/main.py live_trade --help
+python apps/cli/main.py live-trade --help
 ```
 
 ---
