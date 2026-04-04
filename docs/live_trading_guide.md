@@ -87,9 +87,9 @@ python apps/cli/main.py live-trade \
   --strategy-id triple-confirmation \
   --strike-selection ATM \
   --budget 200000-inr \
-  --sl-pct 10.0 \
-  --target-pct 10,20,30 \
-  --tsl-pct 0.0 \
+  --sl-pct 4.0 \
+  --target-pct "3" \
+  --tsl-pct 0.5 \
   --use-be \
   --tsl-id trade-ema-5 \
   --record-papertrade \
@@ -107,11 +107,11 @@ python apps/cli/main.py live-trade \
 - **`--budget`**:
   - Initial capital (e.g., `200000-inr`) or fixed lot count (e.g., `10-lots`). Used to compute position size based on option price and lot size.
 - **`--sl-pct`**:
-  - Stop loss as a percentage of entry premium (e.g., 10.0 for 10%). Default: `10.0`.
+  - Stop loss as a percentage of entry premium (e.g., 4.0 for 4%). Default: `4.0`.
 - **`--target-pct`**:
-  - Comma‑separated profit target percentages (e.g., `10,20,30`). Default: `10,20,30`.
+  - Comma‑separated profit target percentages (e.g., `"3"`). Default: `"3"`.
 - **`--tsl-pct`**:
-  - Trailing stop loss percentage (e.g., 1.0 for 1%). Default: `0.0` (disabled).
+  - Trailing stop loss percentage (e.g., 0.5 for 0.5%). Default: `0.5` (enabled).
 - **`--tsl-id`**:
   - Indicator‑based trailing SL (e.g., `trade-ema-5`). Default: `trade-ema-5`.
 - **`--use-be`**:
@@ -271,9 +271,9 @@ python apps/cli/main.py live-trade \
   --strategy-id triple-confirmation \
   --strike-selection ATM \
   --budget 200000-inr \
-  --sl-pct 10.0 \
-  --target-pct 10,20,30 \
-  --tsl-pct 0.0 \
+  --sl-pct 4.0 \
+  --target-pct "3" \
+  --tsl-pct 0.5 \
   --use-be \
   --tsl-id trade-ema-5 \
   --record-papertrade \

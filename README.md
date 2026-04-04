@@ -70,9 +70,9 @@ python apps/cli/main.py backtest \
   --mode db \
   --budget 200000 \
   --invest-mode compound \
-  --sl-pct 2.0 \
-  --target-pct 2.0,5.0,10.0 \
-  --tsl-pct 1.0 \
+  --sl-pct 4.0 \
+  --target-pct "3" \
+  --tsl-pct 0.5 \
   --strike-selection ATM
 ```
 
@@ -87,9 +87,9 @@ python apps/cli/main.py live_trade \
   --strategy-id triple-confirmation \
   --strike-selection ATM \
   --budget 200000 \
-  --sl-pct 2.0 \
-  --target-pct 2.0,3.0,4.0 \
-  --tsl-pct 1.0 \
+  --sl-pct 4.0 \
+  --target-pct "3" \
+  --tsl-pct 0.5 \
   --use-be \
   --tsl-id active-ema-5 \
   --record-papertrade \

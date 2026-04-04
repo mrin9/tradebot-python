@@ -171,9 +171,9 @@ Two main modes:
 | `--start` | (none) | Start date (YYYY-MM-DD) |
 | `--end` | (same as start) | End date (YYYY-MM-DD) |
 | `--strategy-id` | `triple-confirmation` | Strategy identifier from DB |
-| `--sl-pct` | `10.0` | Stop loss percentage |
-| `--target-pct` | `"10,20,30"` | Comma-separated target percentages |
-| `--tsl-pct` | `0.0` | Trailing stop loss percentage (0 to disable) |
+| `--sl-pct` | `4.0` | Stop loss percentage |
+| `--target-pct` | `"3"` | Comma-separated target percentages |
+| `--tsl-pct` | `0.5` | Trailing stop loss percentage (0 to disable) |
 | `--invest-mode` | (prompted) | Investment mode: `fixed` or `compound` |
 | `--verbose` | `false` | Enable verbose indicator/price logs |
 
@@ -191,9 +191,9 @@ python -m tests.backtest.backtest_runner \
   --start 2026-03-19 \
   --strategy-id triple-confirmation \
   --budget 200000-inr \
-  --sl-pct 10.0 \
-  --target-pct "10,20,30" \
-  --tsl-pct 0.0 \
+  --sl-pct 4.0 \
+  --target-pct "3" \
+  --tsl-pct 0.5 \
   --invest-mode compound \
   --verbose
 ```
@@ -207,9 +207,9 @@ python -m tests.backtest.backtest_runner \
   --end 2024-02-02 \
   --strategy-id triple-confirmation \
   --budget 200000-inr \
-  --sl-pct 10.0 \
-  --target-pct "10,20,30" \
-  --tsl-pct 0.0 \
+  --sl-pct 4.0 \
+  --target-pct "3" \
+  --tsl-pct 0.5 \
   --strike-selection ATM
 ```
 
