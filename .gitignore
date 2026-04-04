@@ -93,3 +93,6 @@ models/*.joblib
 # Local Project Data
 tmp/
 tradebot-java/
+
+# Word temp/lock files
+~$*
