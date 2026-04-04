@@ -137,11 +137,11 @@ python apps/cli/main.py backtest \
   --end 2024-02-02 \
   --mode db \
   --budget 200000-inr \
-  --invest_mode compound \
-  --sl-pct 3.0 \
-  --target-pct 2,3,4 \
-  --tsl-pct 1.0 \
-  --strike-selection OTM-5
+  --invest-mode compound \
+  --sl-pct 10.0 \
+  --target-pct 10,20,30 \
+  --tsl-pct 0.0 \
+  --strike-selection ATM
 ```
 
 If you omit parameters, the CLI will prompt you:
@@ -173,7 +173,7 @@ This simply calls `backtest()` with interactive prompts.
 
 ## 5. Live Trading Operations
 
-Live trading is handled by `LiveTradeEngine` in `packages/livetrade/live_trader.py`, which wraps `FundManager` with XTS socket connections and EOD logic.
+Live trading is handled by `LiveTradeEngine` in `packages/livetrade/live-trader.py`, which wraps `FundManager` with XTS socket connections and EOD logic.
 
 ### 5.1 Prerequisites
 
@@ -188,15 +188,15 @@ python apps/cli/main.py sync_history --date-range "2dago|now"
 ### 5.2 Direct Live Trade Command
 
 ```bash
-python apps/cli/main.py live_trade \
+python apps/cli/main.py live-trade \
   --strategy-id triple-confirmation \
   --strike-selection ATM \
   --budget 200000-inr \
-  --sl-pct 3.0 \
-  --target-pct 2.0,3.0,4.0 \
-  --tsl-pct 1.0 \
+  --sl-pct 10.0 \
+  --target-pct 10,20,30 \
+  --tsl-pct 0.0 \
   --use-be \
-  --tsl-id active-ema-5 \
+  --tsl-id trade-ema-5 \
   --record-papertrade \
   --log-active-indicator \
   --debug
@@ -224,7 +224,7 @@ Then choose **Live Trading**:
 
 1. Select an enabled strategy from `strategy_indicator`.
 2. Specify budget, SL, and targets.
-3. The CLI launches `live_trade` with those parameters.
+3. The CLI launches `live-trade` with those parameters.
 
 ---
 

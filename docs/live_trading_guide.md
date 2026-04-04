@@ -36,10 +36,10 @@ The core idea:
 In `.env`:
 
 ```env
-XTS_MARKET_KEY=your_market_key
-XTS_MARKET_SECRET=your_market_secret
-XTS_INTERACTIVE_KEY=your_interactive_key
-XTS_INTERACTIVE_SECRET=your_interactive_secret
+MARKET_API_KEY=your_market_api_key
+MARKET_API_SECRET=your_market_api_secret
+INTERACTIVE_API_KEY=your_interactive_api_key
+INTERACTIVE_API_SECRET=your_interactive_api_secret
 
 DB_NAME=tradebot
 MONGODB_URI=mongodb://localhost:27017/
@@ -83,15 +83,15 @@ python apps/cli/main.py seed_strategies
 ### 3.1 Direct CLI Command
 
 ```bash
-python apps/cli/main.py live_trade \
+python apps/cli/main.py live-trade \
   --strategy-id triple-confirmation \
   --strike-selection ATM \
-  --budget 200000 \
-  --sl-pct 3.0 \
-  --target-pct 2.0,3.0,4.0 \
+  --budget 200000-inr \
+  --sl-pct 10.0 \
+  --target-pct 10,20,30 \
   --tsl-pct 0.0 \
   --use-be \
-  --tsl-id active-ema-5 \
+  --tsl-id trade-ema-5 \
   --record-papertrade \
   --log-active-indicator \
   --debug
@@ -105,17 +105,17 @@ python apps/cli/main.py live_trade \
 - **`--strike-selection`** (`ATM`, `ITM`, `OTM`):
   - Guides `DriftManager` and `ContractDiscoveryService` to pick the current tradable contract.
 - **`--budget`**:
-  - Initial capital used to compute position size (in lots) based on option price and lot size.
+  - Initial capital (e.g., `200000-inr`) or fixed lot count (e.g., `10-lots`). Used to compute position size based on option price and lot size.
 - **`--sl-pct`**:
-  - Stop loss percentage of the entry premium (e.g., 3.0 for 3%).
+  - Stop loss as a percentage of entry premium (e.g., 10.0 for 10%). Default: `10.0`.
 - **`--target-pct`**:
-  - Comma‑separated profit target percentages (e.g., 2.0,3.0,4.0). Can be used with pyramiding logic.
+  - Comma‑separated profit target percentages (e.g., `10,20,30`). Default: `10,20,30`.
 - **`--tsl-pct`**:
-  - Fixed trailing stop loss percentage (e.g., 1.0 for 1% move).
+  - Trailing stop loss percentage (e.g., 1.0 for 1%). Default: `0.0` (disabled).
 - **`--tsl-id`**:
-  - Indicator‑based trailing SL (e.g., `active-ema-5` from indicator set).
+  - Indicator‑based trailing SL (e.g., `trade-ema-5`). Default: `trade-ema-5`.
 - **`--use-be`**:
-  - Move SL to entry price after first target is hit.
+  - Move SL to entry price after first target is hit. Default: `True`.
 - **`--record-papertrade`**:
   - Persist detailed trade lifecycle events to `papertrade` collection.
 - **`--log-active-indicator`**:
@@ -270,12 +270,12 @@ In case of process restart:
 python apps/cli/main.py live-trade \
   --strategy-id triple-confirmation \
   --strike-selection ATM \
-  --budget 200000 \
-  --sl-pct 3.0 \
-  --target-pct 2.0,3.0,4.0 \
+  --budget 200000-inr \
+  --sl-pct 10.0 \
+  --target-pct 10,20,30 \
   --tsl-pct 0.0 \
   --use-be \
-  --tsl-id active-ema-5 \
+  --tsl-id trade-ema-5 \
   --record-papertrade \
   --debug
 ```

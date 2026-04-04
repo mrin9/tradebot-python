@@ -221,7 +221,7 @@ The CLI (`apps/cli/main.py`) is the main human‑facing interface for the engine
   - `refresh_contracts` – compute which contracts should be tracked.
 - **Trading & backtests**:
   - `backtest` / `interactive_backtest` – interactive backtest launcher using `tests/backtest/backtest_runner`.
-  - `live_trade` – start `LiveTradeEngine` for actual trading with XTS.
+  - `live-trade` – start `LiveTradeEngine` for actual trading with XTS.
 - **Support / safety**:
   - `ensure_indexes` – call `DatabaseManager.ensure_all_indexes`.
   - `seed_strategies` – populate `strategy_indicator` DB.

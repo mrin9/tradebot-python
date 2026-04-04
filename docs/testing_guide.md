@@ -34,10 +34,11 @@ tests/
 Located in `tests/no_db/`, these cover:
 
 - `test_candle_resampler.py`
-- `test_indicator_calculator.py`
 - `test_position_manager.py`
-- `test_drift_manager.py`
 - `test_engine_flow.py`
+- `test_data_gaps_logic.py`
+- `test_strategies_logic.py`
+- `test_indicator_prefix_mapping.py`
 - Strategy/domain logic that can run without a DB.
 
 They are fast and safe to run anytime.
@@ -53,7 +54,7 @@ Located in `tests/readwrite_db/`, using a **test DB**:
 
 Located in `tests/frozen_db/`, backed by snapshot data:
 
-- Example: `test_engine_pipeline.py`, `test_strategy_integration.py`, `audit_golden_copy.py`.
+- Example: `test_engine_pipeline.py`, `test_signal_orchestration.py`, `audit_golden_copy.py`.
 - Use `DB_NAME=tradebot_frozen` and seed via `packages/db/seed_frozen_data.py`.
 
 These tests guarantee deterministic behavior across runs.
@@ -167,14 +168,14 @@ Two main modes:
 | Parameter | Default (if omitted) | Description |
 |-----------|----------------------|-------------|
 | `--mode` | `db` | Backtest source: `db` or `socket` |
-| `--start` | `2026-02-02` | Start date (YYYY-MM-DD) |
+| `--start` | (none) | Start date (YYYY-MM-DD) |
 | `--end` | (same as start) | End date (YYYY-MM-DD) |
 | `--strategy-id` | `triple-confirmation` | Strategy identifier from DB |
-| `--sl-pct` | `3.0` | Stop loss percentage |
-| `--target-pct` | `"2,3,4"` | Comma-separated target percentages |
+| `--sl-pct` | `10.0` | Stop loss percentage |
+| `--target-pct` | `"10,20,30"` | Comma-separated target percentages |
 | `--tsl-pct` | `0.0` | Trailing stop loss percentage (0 to disable) |
-| `--invest-mode` | `compound` | Investment mode: `fixed` or `compound` |
-| `--log-heartbeat` | `false` | Enable verbose indicator/price logs |
+| `--invest-mode` | (prompted) | Investment mode: `fixed` or `compound` |
+| `--verbose` | `false` | Enable verbose indicator/price logs |
 
 Both modes:
 
@@ -189,13 +190,12 @@ python -m tests.backtest.backtest_runner \
   --mode db \
   --start 2026-03-19 \
   --strategy-id triple-confirmation \
-  --budget 200000 \
-  --sl-pct 3.0 \
-  --target-pct "2,3,4" \
+  --budget 200000-inr \
+  --sl-pct 10.0 \
+  --target-pct "10,20,30" \
   --tsl-pct 0.0 \
   --invest-mode compound \
-  --log-heartbeat
-```
+  --verbose
 ```
 
 ### 5.3 Example Socket‑Mode Command
@@ -206,9 +206,9 @@ python -m tests.backtest.backtest_runner \
   --start 2024-02-02 \
   --end 2024-02-02 \
   --strategy-id triple-confirmation \
-  --budget 200000 \
-  --sl-pct 3.0 \
-  --target-pct "4,6,8" \
+  --budget 200000-inr \
+  --sl-pct 10.0 \
+  --target-pct "10,20,30" \
   --tsl-pct 0.0 \
   --strike-selection ATM
 ```
