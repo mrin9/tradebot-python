@@ -284,6 +284,14 @@ class IndicatorCalculator:
         last_row = df.row(-1, named=True)
         prev_row = df.row(-2, named=True) if df.height >= 2 else None
 
+        # [NEW] Gap Detection: Prevent 'prev' values from being used across different days
+        if last_row and prev_row:
+            last_dt = datetime.fromtimestamp(last_row["timestamp"])
+            prev_dt = datetime.fromtimestamp(prev_row["timestamp"])
+            if last_dt.date() != prev_dt.date():
+                logger.info(f"📅 [IC] Session Gap Detected ({prev_dt.date()} -> {last_dt.date()}). Invalidating 'prev' indicators to avoid gap-induced signal.")
+                prev_row = None
+
         prefix = "nifty-" if category == InstrumentCategoryType.SPOT else f"{category.value.lower()}-"
 
         # logger.debug(f"Extracting results for {category} with prefix {prefix}. Indicators: {[i.get('indicatorId') for i in indicators]}")
