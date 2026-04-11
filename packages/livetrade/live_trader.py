@@ -25,9 +25,10 @@ logger = setup_logger("LiveTrader")
 class LiveTradeEngine:
     """
     Orchestrates live trading by connecting LiveMarketService to TradeFlow FundManager.
+    Pass mock="2025-04-10" (or a date range tuple) to use the EmbeddedSimulator instead of real XTS.
     """
 
-    def __init__(self, strategy_config: dict[str, Any], position_config: dict[str, Any], debug: bool = False):
+    def __init__(self, strategy_config: dict[str, Any], position_config: dict[str, Any], debug: bool = False, mock: str | tuple[str, str] | None = None):
         self.strategy_config = strategy_config
         self.position_config = position_config
 
@@ -37,12 +38,23 @@ class LiveTradeEngine:
         # 1. Initialize Services
         self.config_service = TradeConfigService()
         self.discovery_service = ContractDiscoveryService()
+        mock_effective_date = None
+        if mock:
+            start_d = mock[0] if isinstance(mock, tuple) else mock
+            mock_effective_date = DateUtils.parse_iso(start_d)
         self.discovery_service.load_cache(
-            symbol=self.strategy_config.get("symbol", "NIFTY"), series=self.strategy_config.get("series", "OPTIDX")
+            symbol=self.strategy_config.get("symbol", "NIFTY"), series=self.strategy_config.get("series", "OPTIDX"),
+            effective_date=mock_effective_date,
         )
         self.history_service = MarketHistoryService(fetch_ohlc_api_fn=self._fetch_ohlc_api)
 
-        self.market_service = LiveMarketService(debug=debug)
+        if mock:
+            from packages.services.mock_market import MockMarketService
+            start_d, end_d = (mock, mock) if isinstance(mock, str) else mock
+            self.market_service = MockMarketService(start_date=start_d, end_date=end_d, debug=debug)
+        else:
+            self.market_service = LiveMarketService(debug=debug)
+        self.mock = mock
         self.event_service = TradeEventService(
             self.session_id, record_papertrade=position_config.get("record_papertrade", True)
         )
@@ -55,6 +67,7 @@ class LiveTradeEngine:
             strategy_config=self.strategy_config,
             position_config=self.position_config,
             reduced_log=False,
+            is_backtest=bool(mock),
             config_service=self.config_service,
             discovery_service=self.discovery_service,
             history_service=self.history_service,
@@ -67,6 +80,9 @@ class LiveTradeEngine:
         self.fund_manager.position_manager.on_trade_event = lambda ev: self.event_service.record_trade_event(
             ev, self.fund_manager
         )
+        # Tag mock orders with session ID
+        if hasattr(self.fund_manager.order_manager, 'session_id'):
+            self.fund_manager.order_manager.session_id = self.session_id
 
         self.last_tick_time = time.time()
         self.is_running = False
@@ -91,17 +107,18 @@ class LiveTradeEngine:
 
         try:
             while self.is_running:
-                now = datetime.now(DateUtils.MARKET_TZ)
-                # EOD Settlement
-                if now.hour == 15 and now.minute >= 31:
-                    self.fund_manager.handle_eod_settlement(time.time())
-                    self.stop()
-                    break
+                if not self.mock:
+                    now = datetime.now(DateUtils.MARKET_TZ)
+                    # EOD Settlement
+                    if now.hour == 15 and now.minute >= 31:
+                        self.fund_manager.handle_eod_settlement(time.time())
+                        self.stop()
+                        break
 
-                # Health Check (Socket & Drift)
-                if time.time() - self.last_tick_time > 30:
-                    self.market_service.ensure_connection()
-                    self.last_tick_time = time.time()
+                    # Health Check (Socket & Drift)
+                    if time.time() - self.last_tick_time > 30:
+                        self.market_service.ensure_connection()
+                        self.last_tick_time = time.time()
 
                 time.sleep(1)
         except KeyboardInterrupt:
@@ -120,6 +137,15 @@ class LiveTradeEngine:
     def _process_tick(self, tick: dict):
         """Passed as callback to LiveMarketService."""
         self.last_tick_time = time.time()
+
+        # Mock mode: handle simulation complete → EOD settlement
+        if tick.get("__simulation_complete__"):
+            if self.mock:
+                end_d = self.mock[1] if isinstance(self.mock, tuple) else self.mock
+                eod_ts = DateUtils.to_timestamp(DateUtils.parse_iso(end_d), end_of_day=True)
+                self.fund_manager.handle_eod_settlement(eod_ts)
+            self.stop()
+            return
 
         # 1. Warmup Check
         if not self.has_warmed_up:
@@ -178,6 +204,7 @@ class LiveTradeEngine:
             self.fund_manager.latest_indicators_state = self.fund_manager._get_mapped_indicators()
 
             self.has_warmed_up = True
+            self.fund_manager.is_warming_up = False
 
             # Replay buffered ticks that arrived during warmup
             buffered = self._warmup_tick_buffer
@@ -195,7 +222,11 @@ class LiveTradeEngine:
     def _initialize_daily_grid(self):
         """Initial ATM resolution and static 80-option grid subscription."""
         try:
-            now = datetime.now(DateUtils.MARKET_TZ)
+            if self.mock:
+                start_d = self.mock[0] if isinstance(self.mock, tuple) else self.mock
+                now = DateUtils.parse_iso(start_d)
+            else:
+                now = datetime.now(DateUtils.MARKET_TZ)
             instruments_to_sub = {settings.NIFTY_INSTRUMENT_ID}
 
             if self.strategy_config.get("instrument_type", "OPTIONS") != "CASH":

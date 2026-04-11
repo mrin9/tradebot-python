@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from packages.services.contract_discovery import ContractDiscoveryService
+from packages.settings import settings
 from packages.services.market_history import MarketHistoryService
 from packages.services.trade_config_service import TradeConfigService
 from packages.tradeflow.candle_resampler import CandleResampler
@@ -102,6 +103,10 @@ class FundManager:
             tsl_id=self.tsl_id,
         )
         self.order_manager = PaperTradingOrderManager()
+        if settings.USE_MOCK_ORDER_MANAGER:
+            from packages.tradeflow.mock_order_manager import MockOrderManager
+            self.order_manager = MockOrderManager()
+            logger.info("📡 Using MockOrderManager (MongoDB-backed)")
         self.position_manager.set_order_manager(self.order_manager)
 
         if self.fixed_lots:

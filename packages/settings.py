@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     OPTIONS_STRIKE_COUNT: int = 20  # ATM +/- 20 strikes (Aligned with Java)
     SYNC_HISTORY_WORKERS: int = 4  # Concurrent workers for historical sync
 
-    GLOBAL_WARMUP_CANDLES: int = 1500
+    GLOBAL_WARMUP_CANDLES: int = 250
     TRADE_PRICE_SOURCE: str = "open"  # 'open' better mimics live entry since backtests use 1-min candles 
     TRADE_INVEST_MODE: str = "fixed"
     TRADE_BUDGET: str = "200000-inr"
@@ -106,6 +106,9 @@ class Settings(BaseSettings):
     MARKET_API_SECRET: str | None = None
     INTERACTIVE_API_KEY: str | None = None
     INTERACTIVE_API_SECRET: str | None = None
+
+    # Mock Trading
+    USE_MOCK_ORDER_MANAGER: bool = True
 
     @field_validator("*", mode="after")
     @classmethod

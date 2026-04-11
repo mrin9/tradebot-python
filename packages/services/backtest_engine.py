@@ -376,6 +376,9 @@ class BacktestEngine:
         self.event_service = TradeEventService(
             self.session_id, record_papertrade=False
         )
+        # Tag mock orders with session ID
+        if hasattr(self.fund_manager.order_manager, 'session_id'):
+            self.fund_manager.order_manager.session_id = self.session_id
 
     def record_daily_pnl(self, day_str: str):
         current_total_pnl = self.fund_manager.position_manager.session_realized_pnl

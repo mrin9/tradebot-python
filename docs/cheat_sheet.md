@@ -322,7 +322,9 @@ python apps/cli/main.py live-trade \
   [--use-be / --no-use-be] \
   [--tsl-id TEXT] \
   [--record-papertrade / --no-record-papertrade] \
-  [--debug / --no-debug]
+  [--debug / --no-debug] \
+  [--log-active-indicator / --no-log-active-indicator] \
+  [--mock TEXT]
 ```
 
 **Options & Defaults**
@@ -349,6 +351,14 @@ python apps/cli/main.py live-trade \
   - Default: `True`
 - `--debug / --no-debug`
   - Default: `False`
+- `--log-active-indicator / --no-log-active-indicator`
+  - Default: `True`
+  - Dump active instrument data to CSV on entry signal.
+- `--mock, -m TEXT`
+  - Default: `None`
+  - Replay historical data via the embedded socket simulator instead of real XTS.
+  - Single date: `--mock 2025-04-10`
+  - Date range: `--mock 2025-04-07:2025-04-10`
 
 **Description**
 
