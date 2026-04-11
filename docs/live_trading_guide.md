@@ -122,8 +122,52 @@ python apps/cli/main.py live-trade \
   - Dump active instrument data (OHLC + Indicators) to a CSV file in `logs/diagnostics/` upon receiving an entry signal. Default is `True`.
 - **`--debug`**:
   - More verbose socket and engine logs.
+- **`--mock`** (`-m`):
+  - Replay historical data from MongoDB via the embedded socket simulator instead of connecting to real XTS.
+  - Accepts a single date (`2025-04-10`) or a colon‑separated range (`2025-04-07:2025-04-10`).
+  - The full live trading pipeline (warmup, signals, orders, event persistence) runs identically — only the data source changes.
 
-### 3.2 Interactive Live Trading via Menu
+### 3.2 Mock Mode Examples
+
+Mock mode lets you validate the entire live trading pipeline against historical data without XTS credentials or market hours.
+
+**Single day:**
+
+```bash
+python apps/cli/main.py live-trade \
+  --strategy-id triple-confirmation \
+  --budget 200000-inr \
+  --mock 2026-04-10
+```
+
+**Date range:**
+
+```bash
+python apps/cli/main.py live-trade \
+  --strategy-id triple-confirmation \
+  --budget 200000-inr \
+  --sl-pct 4.0 \
+  --target-pct "3" \
+  --mock 2025-04-07:2025-04-10
+```
+
+**How it works:**
+
+1. `MockMarketService` (in `packages/services/mock_market.py`) replaces `LiveMarketService`.
+2. It auto‑starts the `EmbeddedSimulator` on port 5050 (or connects if already running).
+3. `SocketDataProvider` reads candles from MongoDB and replays them as XTS‑formatted `1501-json-full` socket events.
+4. Real‑time EOD checks and health‑check reconnections are skipped; the simulator emits `simulation_complete` when done.
+
+**When to use mock vs backtest:**
+
+| Aspect | `--mock` (live‑trade) | `--mode socket` (backtest) |
+|--------|----------------------|---------------------------|
+| Code path | Full `LiveTradeEngine` pipeline | `BacktestEngine` wrapper |
+| Event persistence | `livetrade` + `papertrade` collections | `backtest` collection |
+| Session tracking | `TradeEventService` with live session ID | Backtest‑specific session ID |
+| Use case | Validate live trading code end‑to‑end | Strategy PnL analysis |
+
+### 3.3 Interactive Live Trading via Menu
 
 ```bash
 python apps/cli/main.py menu

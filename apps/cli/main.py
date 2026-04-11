@@ -495,6 +495,9 @@ def live_trade(
     log_active_indicator: Annotated[
         bool, typer.Option("--log-active-indicator/--no-log-active-indicator", help="Dump active instrument data to CSV on entry signal")
     ] = settings.LOG_ACTIVE_INDICATOR,
+    mock: Annotated[
+        str | None, typer.Option("--mock", "-m", help="Mock mode: replay historical data via simulator (e.g. '2025-04-10' or '2025-04-07:2025-04-10')")
+    ] = None,
 ):
     """Starts the Live Trading Engine."""
     try:
@@ -524,7 +527,7 @@ def live_trade(
             "python_strategy_path": python_strategy_path,
         }
 
-        engine = LiveTradeEngine(strategy_config=rule, position_config=pos_cfg, debug=debug)
+        engine = LiveTradeEngine(strategy_config=rule, position_config=pos_cfg, debug=debug, mock=tuple(mock.split(":")) if mock and ":" in mock else mock)
         engine.start()
 
     except Exception as e:

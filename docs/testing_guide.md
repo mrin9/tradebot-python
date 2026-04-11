@@ -266,5 +266,6 @@ Before running a new strategy live:
 - [ ] Run unit tests (`tests/no_db/`).
 - [ ] Run at least one DB‑mode backtest over multiple days.
 - [ ] Optionally run socket‑mode backtests to mimic live feed behavior.
+- [ ] Run `live-trade --mock <date>` to validate the full live pipeline against historical data.
 - [ ] Check PnL and event logs in backtest collections.
 
