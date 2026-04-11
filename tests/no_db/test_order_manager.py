@@ -36,7 +36,7 @@ class TestPaperTradingOrderManager:
     def test_get_order_status_unknown(self):
         """Unknown order returns UNKNOWN status."""
         om = PaperTradingOrderManager()
-        assert om.get_order_status("PAPER-999") == {"status": "UNKNOWN"}
+        assert om.get_order_status("PAPER-999") == {"status": "UNKNOWN", "price": 0, "quantity": 0}
 
     def test_order_type_and_price(self):
         """Custom order type and price are stored."""

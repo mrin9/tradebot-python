@@ -46,7 +46,7 @@ class TradeEventService:
             indicators=payload.get("indicators", {}),
             is_continuity=payload.get("is_continuity", False),
         )
-        logger.info(log_msg)
+        logger.debug(log_msg)
 
     def record_trade_event(self, event_data: dict, fund_manager: Any):
         """

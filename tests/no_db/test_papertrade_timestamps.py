@@ -10,7 +10,10 @@ from packages.utils.date_utils import DateUtils
 class MockOrderManager:
     def place_order(self, symbol, side, qty, order_type="MARKET", price=0.0, timestamp=None):
         self.last_order = {"symbol": symbol, "side": side, "qty": qty, "timestamp": timestamp}
-        return {"status": "FILLED", "order_id": "TEST-ORDER"}
+        return {"status": "FILLED", "order_id": "TEST-ORDER", "price": price, "quantity": qty}
+
+    def get_order_status(self, order_id):
+        return {"status": "FILLED", "price": 0, "quantity": 0}
 
 
 def test_papertrade_timestamps_reflect_market_time():

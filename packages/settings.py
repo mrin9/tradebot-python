@@ -109,6 +109,8 @@ class Settings(BaseSettings):
 
     # Mock Trading
     USE_MOCK_ORDER_MANAGER: bool = True
+    MOCK_SIMULATE_MARGIN_REJECTION: bool = False
+    MOCK_AVAILABLE_MARGIN: float = 500000.0
 
     @field_validator("*", mode="after")
     @classmethod
