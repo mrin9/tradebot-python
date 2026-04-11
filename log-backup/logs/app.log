@@ -1,0 +1,354 @@
+APR-10 15:31 INFO     sync_master.py :28    Fetching master data for segments: ['NSECM', 'NSEFO']
+APR-10 15:31 WARNING  xts_session_manager.py:72    Failed to load market session from file: name 'DateUtils' is not defined
+APR-10 15:31 INFO     xts_session_manager.py:111   Initializing New Market Data API Session...
+APR-10 15:31 INFO     xts_session_manager.py:114   Market Data Login Successful. User: WD9952
+APR-10 15:31 INFO     sync_master.py :33    Master data received. Size: 20725190 chars. Parsing...
+APR-10 15:31 INFO     sync_master.py :137   Filtered 104737 -> 4961 instruments.
+APR-10 15:31 INFO     sync_master.py :138   Skipped: Equity=0, Expired=0, Future=7583
+APR-10 15:31 INFO     sync_master.py :61    NIFTY Index (26000) missing from master dump. Fetching via search API...
+APR-10 15:31 INFO     sync_master.py :82    NIFTY Index record restored.
+APR-10 15:31 INFO     mongo.py       :20    Connecting to MongoDB: mongodb://localhost:27017/tradebot (tradebot)
+APR-10 15:31 INFO     mongo.py       :26    MongoDB Connection Established and Pinged.
+APR-10 15:31 INFO     sync_master.py :146   Marking existing instruments as 'isOld=True'...
+APR-10 15:31 INFO     sync_master.py :154   Upserting 4962 instruments to MongoDB...
+APR-10 15:31 INFO     sync_master.py :165   Sync Complete. Matched: 4962, Upserted: 0
+APR-10 15:31 INFO     sync_master.py :171   Cleaning up instrument_master: Removing records NOT in ['INDEX', 'FUTIDX', 'OPTIDX']
+APR-10 15:31 INFO     mongo.py       :20    Connecting to MongoDB: mongodb://localhost:27017/tradebot (tradebot)
+APR-10 15:31 INFO     mongo.py       :26    MongoDB Connection Established and Pinged.
+APR-10 15:31 INFO     sync_history.py:97    --- PHASE 1: Syncing NIFTY Spot for range 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 ---
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 26000 (Index) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 WARNING  xts_session_manager.py:72    Failed to load market session from file: name 'DateUtils' is not defined
+APR-10 15:31 INFO     xts_session_manager.py:111   Initializing New Market Data API Session...
+APR-10 15:31 INFO     xts_session_manager.py:114   Market Data Login Successful. User: WD9952
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 26000. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:101   --- PHASE 2: Syncing Daily Options ---
+APR-10 15:31 INFO     contract_discovery.py:263   Deriving contracts for 2 expiries: ['2026-04-13T14:30:00+05:30', '2026-04-21T14:30:00+05:30']
+APR-10 15:31 INFO     sync_history.py:118   🚀 Syncing 164 contracts for 2026-04-10 in parallel (4 workers)...
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54835 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54798 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54788 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54797 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54835. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54884 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54788. Total New Ticks: 358
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54800 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54798. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54877 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54797. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54892 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54800. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54882 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54884. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54893 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54892. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54902 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54877. Total New Ticks: 316
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54891 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54882. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54768 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54891. Total New Ticks: 15
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54792 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54893. Total New Ticks: 312
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54818 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54902. Total New Ticks: 372
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54777 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54792. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54799 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54768. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54804 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54818. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54778 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54777. Total New Ticks: 322
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54888 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54804. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54832 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54799. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54809 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54778. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54875 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54888. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54878 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54875. Total New Ticks: 209
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54769 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54832. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54890 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54878. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54767 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54809. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54811 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54769. Total New Ticks: 237
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54794 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54767. Total New Ticks: 144
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54815 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54811. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54903 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54890. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54820 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54794. Total New Ticks: 351
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54795 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54815. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54876 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54903. Total New Ticks: 0
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54802 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54820. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54887 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54795. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54791 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54887. Total New Ticks: 17
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54881 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54876. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54796 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54802. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54883 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54881. Total New Ticks: 174
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54774 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54791. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54821 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54883. Total New Ticks: 48
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54810 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54796. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54775 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54821. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54812 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54775. Total New Ticks: 216
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54770 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54774. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54886 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54810. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54773 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54812. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54771 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54770. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54817 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54773. Total New Ticks: 326
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54779 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54886. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54803 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54771. Total New Ticks: 121
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54834 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54779. Total New Ticks: 232
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54833 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54817. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54793 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54803. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54787 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54834. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54801 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54833. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54816 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54793. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54808 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54787. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54805 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54816. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54807 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54801. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54880 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54808. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54776 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54805. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54879 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54807. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54789 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54776. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54772 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54880. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54873 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54879. Total New Ticks: 125
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54806 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54772. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54790 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54789. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54885 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54873. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54864 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54806. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54874 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54790. Total New Ticks: 315
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54866 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54885. Total New Ticks: 147
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54871 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54874. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54868 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54864. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54872 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54866. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54889 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54871. Total New Ticks: 332
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54863 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54889. Total New Ticks: 65
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54870 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54868. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54869 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54872. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54867 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54863. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 54865 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54870. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63401 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54869. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63382 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63382. Total New Ticks: 14
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63430 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54865. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63447 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 54867. Total New Ticks: 366
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63387 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63401. Total New Ticks: 369
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63402 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63430. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63399 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63447. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63410 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63387. Total New Ticks: 300
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63393 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63402. Total New Ticks: 140
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63408 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63399. Total New Ticks: 319
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63417 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63410. Total New Ticks: 293
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63422 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63408. Total New Ticks: 369
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63396 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63393. Total New Ticks: 369
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63409 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63417. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63389 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63409. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63392 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63422. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63423 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63396. Total New Ticks: 334
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63381 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63389. Total New Ticks: 368
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63411 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63392. Total New Ticks: 145
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63388 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63381. Total New Ticks: 367
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63379 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63423. Total New Ticks: 369
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63415 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63388. Total New Ticks: 146
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63398 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63411. Total New Ticks: 349
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63404 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63398. Total New Ticks: 82
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63403 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63415. Total New Ticks: 366
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63412 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63379. Total New Ticks: 283
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63405 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63404. Total New Ticks: 327
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63426 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63403. Total New Ticks: 347
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63429 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63412. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63406 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63405. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63414 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63426. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63427 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63429. Total New Ticks: 194
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63380 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63406. Total New Ticks: 231
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63395 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63414. Total New Ticks: 366
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63413 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63380. Total New Ticks: 106
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63428 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63427. Total New Ticks: 350
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63384 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63395. Total New Ticks: 308
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63407 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63413. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63390 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63428. Total New Ticks: 357
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63391 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63384. Total New Ticks: 118
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63383 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63407. Total New Ticks: 347
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63394 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63390. Total New Ticks: 36
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63397 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63394. Total New Ticks: 58
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63386 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63383. Total New Ticks: 289
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63385 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63391. Total New Ticks: 307
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63416 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63397. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63400 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63386. Total New Ticks: 7
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63421 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63385. Total New Ticks: 368
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63458 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63416. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63465 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63400. Total New Ticks: 271
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63478 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63421. Total New Ticks: 364
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63470 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63465. Total New Ticks: 111
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63434 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63458. Total New Ticks: 366
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63483 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63470. Total New Ticks: 368
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63467 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63478. Total New Ticks: 353
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63437 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63483. Total New Ticks: 0
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63475 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63467. Total New Ticks: 9
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63457 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63434. Total New Ticks: 362
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63466 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63437. Total New Ticks: 211
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63420 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63475. Total New Ticks: 2
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63474 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63457. Total New Ticks: 331
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63424 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63466. Total New Ticks: 354
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63436 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63420. Total New Ticks: 369
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63469 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63474. Total New Ticks: 329
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63378 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63424. Total New Ticks: 335
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63482 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63469. Total New Ticks: 89
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63378. Total New Ticks: 20
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63431 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63481 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63436. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63477 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63477. Total New Ticks: 22
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63480 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63482. Total New Ticks: 357
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63468 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63481. Total New Ticks: 206
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63476 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63431. Total New Ticks: 265
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63463 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63463. Total New Ticks: 44
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63445 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63468. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63464 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63480. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63479 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63476. Total New Ticks: 368
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63471 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63445. Total New Ticks: 92
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63472 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63479. Total New Ticks: 0
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63425 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63471. Total New Ticks: 2
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63473 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63464. Total New Ticks: 369
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63444 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63473. Total New Ticks: 42
+APR-10 15:31 INFO     sync_history.py:41    Syncing Instrument 63435 (Option) from 2026-04-10 00:00:00+05:30 to 2026-04-10 23:59:59+05:30 (1 chunks)
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63472. Total New Ticks: 370
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63425. Total New Ticks: 276
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63444. Total New Ticks: 368
+APR-10 15:31 INFO     sync_history.py:84    Sync Complete for 63435. Total New Ticks: 70

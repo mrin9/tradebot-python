@@ -81,6 +81,10 @@ pnpm-debug.log*
 # Logs and App-Specific Data
 logs/
 *.log
+!log-backup/
+!log-backup/**
+
+
 simulator_service.pid
 .xts_session.json
 
