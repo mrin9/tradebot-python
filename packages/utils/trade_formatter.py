@@ -31,7 +31,7 @@ class TradeFormatter:
     @staticmethod
     def _format_event_prefix(emoji: str, timestamp: datetime, symbol: str, event_label: str) -> str:
         """Helper to unify the [Emoji] [Timestamp] Event | Symbol prefix used in most logs."""
-        fmt_time = timestamp.strftime("%d-%b-%y %H:%M").upper()
+        fmt_time = timestamp.strftime("%d-%b-%y %H:%M:%S").upper()
         return f"{emoji} [{fmt_time}] {event_label} | {symbol}"
 
     @staticmethod
@@ -102,14 +102,14 @@ class TradeFormatter:
 
     @staticmethod
     def format_breakeven(timestamp: datetime, price: float) -> str:
-        fmt_time = timestamp.strftime("%d-%b %H:%M").upper()
+        fmt_time = timestamp.strftime("%d-%b %H:%M:%S").upper()
         return f"{TradeFormatter.EMOJI_BREAKEVEN} [{fmt_time}] Break-Even Triggered! SL moved to Entry ({price})"
 
     @staticmethod
     def format_pyramid(
         timestamp: datetime, step: int, total_steps: int, quantity: int, price: float, avg_price: float, total_qty: int
     ) -> str:
-        fmt_time = timestamp.strftime("%d-%b %H:%M").upper()
+        fmt_time = timestamp.strftime("%d-%b %H:%M:%S").upper()
         return (
             f"{TradeFormatter.EMOJI_PYRAMID} [{fmt_time}] PYRAMID Step {step}/{total_steps}: "
             f"Added {quantity} lots @ {price} | New Avg: {avg_price:.2f} | "
