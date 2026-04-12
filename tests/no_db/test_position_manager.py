@@ -18,7 +18,10 @@ class MockOrderManager:
     def place_order(self, symbol, side, qty, order_type="MARKET", price=0.0, timestamp=None):
         self.last_order = {"symbol": symbol, "side": side, "qty": qty, "timestamp": timestamp}
         self.orders.append(self.last_order)
-        return {"status": "FILLED", "order_id": "MOCK-1"}
+        return {"status": "FILLED", "order_id": "MOCK-1", "price": price, "quantity": qty}
+
+    def get_order_status(self, order_id):
+        return {"status": "FILLED", "price": self.last_order.get("price", 0) if hasattr(self, "last_order") else 0, "quantity": 0}
 
 
 @pytest.fixture

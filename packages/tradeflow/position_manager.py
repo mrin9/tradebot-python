@@ -316,7 +316,6 @@ class PositionManager:
         if next_step >= len(self.pyramid_steps):
             return  # All pyramid steps exhausted
 
-        # Check price confirmation
         # Check price confirmation (has it moved enough in our favor?)
         is_long = self._is_long_dir(pos.intent)
         price_moved = (price - pos.entry_price) if is_long else (pos.entry_price - price)
@@ -328,9 +327,23 @@ class PositionManager:
         step_pct = self.pyramid_steps[next_step]
         add_qty = max(1, (pos.total_intended_quantity * step_pct) // 100)
 
-        # Update position with weighted average entry
+        # Place order first, verify fill
+        filled_price = price
+        if self.order_manager:
+            order_result = self.order_manager.place_order(
+                pos.symbol, "BUY", add_qty, price=price, timestamp=timestamp
+            )
+            order_id = order_result.get("order_id")
+            if order_id:
+                status = self.order_manager.get_order_status(order_id)
+                if status.get("status") != "FILLED":
+                    logger.warning(f"⚠️ Pyramid order {order_id} not filled: {status.get('status')}")
+                    return
+                filled_price = status.get("price", price) or price
+
+        # Update position with weighted average entry using filled price
         old_total = pos.entry_price * pos.remaining_quantity
-        new_total = price * add_qty
+        new_total = filled_price * add_qty
         pos.entry_price = (old_total + new_total) / (pos.remaining_quantity + add_qty)
         pos.remaining_quantity += add_qty
         pos.initial_quantity += add_qty
@@ -340,23 +353,17 @@ class PositionManager:
         # Recalculate SL and Targets based on new weighted average entry
         pos.stop_loss = self._get_sl_price(pos.entry_price, self.sl_pct, is_long)
         pos.targets = self._get_target_prices(pos.entry_price, self.target_pct_steps, is_long)
-        
-        # NOTE: We DO NOT reset achieved_targets. 
-        # If we already hit Target-1, we continue from Target-2 (new level).
 
         log_msg = TradeFormatter.format_pyramid(
             timestamp=timestamp,
             step=next_step + 1,
             total_steps=len(self.pyramid_steps),
             quantity=add_qty,
-            price=price,
+            price=filled_price,
             avg_price=pos.entry_price,
             total_qty=pos.remaining_quantity,
         )
         logger.info(log_msg)
-
-        if self.order_manager:
-            self.order_manager.place_order(pos.symbol, "BUY", add_qty, timestamp=timestamp)
 
     def update_tick(
         self, tick: dict[str, Any], nifty_price: float | None = None, indicators: dict[str, Any] | None = None
@@ -571,24 +578,41 @@ class PositionManager:
             self.instrument_type in [InstrumentKindType.CASH, InstrumentKindType.FUTURES]
             and intent == MarketIntentType.SHORT
         ):
-            # logger.info(f"skipping SHORT signal for {self.instrument_type.name}") # Avoid noise
             return
 
         # Determine trade direction logic once
         is_long = self._is_long_dir(intent)
 
-        # Set SL and Targets based on Direction (Percentage-based)
-        sl = self._get_sl_price(price, self.sl_pct, is_long)
-        targets = self._get_target_prices(price, self.target_pct_steps, is_long)
-
         # Calculate initial pyramid quantity
-        step_pct = self.pyramid_steps[0]  # First step percentage
+        step_pct = self.pyramid_steps[0]
         pyramid_qty = max(1, (self.quantity * step_pct) // 100)
+
+        # Place Order FIRST
+        side = "BUY"
+        if self.instrument_type != InstrumentKindType.OPTIONS and intent == MarketIntentType.SHORT:
+            side = "SELL"
+
+        filled_price = price
+        if self.order_manager:
+            order_result = self.order_manager.place_order(
+                self.symbol, side, pyramid_qty, price=price, timestamp=timestamp
+            )
+            order_id = order_result.get("order_id")
+            if order_id:
+                status = self.order_manager.get_order_status(order_id)
+                if status.get("status") != "FILLED":
+                    logger.warning(f"⚠️ Order {order_id} not filled: {status.get('status')}")
+                    return
+                filled_price = status.get("price", price) or price
+
+        # Use filled price for SL/Targets
+        sl = self._get_sl_price(filled_price, self.sl_pct, is_long)
+        targets = self._get_target_prices(filled_price, self.target_pct_steps, is_long)
 
         lot_size = settings.NIFTY_LOT_SIZE
         fmt_time = DateUtils.to_iso(timestamp)
-        total_price = pyramid_qty * lot_size * price
-        trans_desc = f"Purchased {pyramid_qty} lots({lot_size}) @ {price} | Total: ₹{total_price:,.2f}"
+        total_price = pyramid_qty * lot_size * filled_price
+        trans_desc = f"Purchased {pyramid_qty} lots({lot_size}) @ {filled_price} | Total: ₹{total_price:,.2f}"
         if self.display_symbol:
             trans_desc = f"[{self.display_symbol}] " + trans_desc
 
@@ -596,12 +620,12 @@ class PositionManager:
             symbol=self.symbol,
             display_symbol=self.display_symbol,
             intent=intent,
-            entry_price=round(float(price or 0.0), 2),
+            entry_price=round(float(filled_price), 2),
             initial_quantity=pyramid_qty,
             entry_time=timestamp,
             stop_loss=round(float(sl), 2),
             targets=[round(float(p), 2) for p in targets],
-            current_price=price,
+            current_price=filled_price,
             trade_cycle=cycle_id,
             entry_signal=reason,
             entry_reason_description=reason_desc,
@@ -614,6 +638,18 @@ class PositionManager:
             is_continuity=is_continuity,
         )
         self.entry_count += 1
+
+        log_msg = TradeFormatter.format_entry(
+            timestamp=timestamp,
+            symbol=self.display_symbol,
+            quantity=pyramid_qty,
+            price=filled_price,
+            total=total_price,
+            lot_size=lot_size,
+            step=1 if len(self.pyramid_steps) > 1 else None,
+            total_steps=len(self.pyramid_steps) if len(self.pyramid_steps) > 1 else None,
+        )
+        logger.info(log_msg)
 
         # Trigger entry event
         if self.on_trade_event:
@@ -632,31 +668,6 @@ class PositionManager:
                 }
             )
 
-        # Place Order:
-        # For OPTIONS: Always BUY
-        # For CASH/FUTURES: BUY (Shorts are disabled)
-        side = "BUY"
-        if self.instrument_type != InstrumentKindType.OPTIONS and intent == MarketIntentType.SHORT:
-            side = "SELL"  # This part is technically unreachable now due to the lock above
-
-        if len(self.pyramid_steps) > 1:
-            f" (Pyramid 1/{len(self.pyramid_steps)})"
-
-        log_msg = TradeFormatter.format_entry(
-            timestamp=timestamp,
-            symbol=self.display_symbol,
-            quantity=pyramid_qty,
-            price=price,
-            total=total_price,
-            lot_size=lot_size,
-            step=1 if len(self.pyramid_steps) > 1 else None,
-            total_steps=len(self.pyramid_steps) if len(self.pyramid_steps) > 1 else None,
-        )
-        logger.info(log_msg)
-
-        if self.order_manager:
-            self.order_manager.place_order(self.symbol, side, pyramid_qty, timestamp=timestamp)
-
     def _close_position(
         self,
         price: float,
@@ -668,7 +679,7 @@ class PositionManager:
     ) -> None:
         """
         Executes a partial or full exit.
-        If current_position is None, it might be recording a summary exit for a just-closed position.
+        Places order first, verifies fill, then uses actual filled price for PnL.
         """
         pos = self.current_position or self._last_pos_for_summary
 
@@ -685,20 +696,33 @@ class PositionManager:
         is_long_dir = (self.instrument_type == InstrumentKindType.OPTIONS) or (pos.intent == MarketIntentType.LONG)
         exit_side = "SELL" if is_long_dir else "BUY"
 
+        # Place order FIRST, use filled price for PnL
+        filled_price = price
+        if self.order_manager and close_qty > 0:
+            order_result = self.order_manager.place_order(
+                self.symbol, exit_side, close_qty, price=price, timestamp=timestamp
+            )
+            order_id = order_result.get("order_id")
+            if order_id:
+                status = self.order_manager.get_order_status(order_id)
+                if status.get("status") == "FILLED":
+                    filled_price = status.get("price", price) or price
+                else:
+                    logger.warning(f"⚠️ Exit order {order_id} not filled: {status.get('status')}. Using signal price.")
+
         lot_size = settings.NIFTY_LOT_SIZE
-        # PnL is (Exit - Entry) for Long, (Entry - Exit) for Short
+        # PnL using actual filled price
         if is_long_dir:
-            chunk_pnl = (price - pos.entry_price) * close_qty * lot_size
+            chunk_pnl = (filled_price - pos.entry_price) * close_qty * lot_size
         else:
-            chunk_pnl = (pos.entry_price - price) * close_qty * lot_size
+            chunk_pnl = (pos.entry_price - filled_price) * close_qty * lot_size
 
         pos.total_realized_pnl += chunk_pnl
         self.session_realized_pnl += chunk_pnl
 
-        lot_size = settings.NIFTY_LOT_SIZE
         fmt_time = DateUtils.to_iso(timestamp)
-        total_price = close_qty * lot_size * price
-        trans_desc = f"Sold {close_qty} lots({lot_size}) @ {price} | Total: ₹{total_price:,.2f}"
+        total_price = close_qty * lot_size * filled_price
+        trans_desc = f"Sold {close_qty} lots({lot_size}) @ {filled_price} | Total: ₹{total_price:,.2f}"
         if pos.display_symbol:
             trans_desc = f"[{pos.display_symbol}] " + trans_desc
 
@@ -708,7 +732,7 @@ class PositionManager:
                 target_num=pos.achieved_targets,
                 symbol=pos.display_symbol,
                 quantity=close_qty,
-                price=price,
+                price=filled_price,
                 total=total_price,
                 lot_size=lot_size,
                 action_pnl=chunk_pnl,
@@ -735,7 +759,7 @@ class PositionManager:
                     {
                         "step": pos.achieved_targets,
                         "time": fmt_time,
-                        "price": price,
+                        "price": filled_price,
                         "quantity": close_qty,
                         "actionPnl": chunk_pnl,
                         "niftyPrice": nifty_price or 0.0,
@@ -748,7 +772,7 @@ class PositionManager:
                 reason=reason,
                 symbol=pos.display_symbol,
                 quantity=close_qty,
-                price=price,
+                price=filled_price,
                 total=total_price,
                 lot_size=lot_size,
                 action_pnl=chunk_pnl,
@@ -792,7 +816,7 @@ class PositionManager:
             entry_transaction_desc=pos.entry_transaction_desc,
             exit_transaction_desc=trans_desc,
         )
-        closed_chunk.exit_price = price
+        closed_chunk.exit_price = filled_price
         closed_chunk.exit_time = timestamp
         closed_chunk.nifty_price_at_exit = nifty_price or 0.0
         closed_chunk.status = reason
@@ -802,9 +826,6 @@ class PositionManager:
         self.trades_history.append(closed_chunk)
         pos.remaining_quantity -= close_qty
 
-        if self.order_manager and close_qty > 0:
-            self.order_manager.place_order(self.symbol, exit_side, close_qty, timestamp=timestamp)
-
         if pos.remaining_quantity <= 0:
-            self._last_pos_for_summary = pos # Keep reference for summary exit if needed
+            self._last_pos_for_summary = pos
             self.current_position = None

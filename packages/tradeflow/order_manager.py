@@ -10,7 +10,7 @@ logger = setup_logger(__name__)
 class OrderManager(ABC):
     """
     Abstract Base Class for Order Management.
-    Implementations: PaperTradingOrderManager, XTSOrderManager
+    Implementations: PaperTradingOrderManager, MockOrderManager, XTSOrderManager
     """
 
     @abstractmethod
@@ -23,6 +23,7 @@ class OrderManager(ABC):
         price: float = 0.0,
         timestamp: datetime | None = None,
     ) -> dict:
+        """Returns dict with at least: order_id, status, price, quantity"""
         pass
 
     @abstractmethod
@@ -31,6 +32,7 @@ class OrderManager(ABC):
 
     @abstractmethod
     def get_order_status(self, order_id: str) -> dict:
+        """Returns dict with at least: status, price, quantity"""
         pass
 
 
@@ -63,7 +65,7 @@ class PaperTradingOrderManager(OrderManager):
             "quantity": quantity,
             "type": order_type,
             "price": price,
-            "status": "FILLED",  # Instant fill for paper trading
+            "status": "FILLED",
             "timestamp": timestamp or datetime.now(DateUtils.MARKET_TZ),
         }
 
@@ -79,4 +81,5 @@ class PaperTradingOrderManager(OrderManager):
         return False
 
     def get_order_status(self, order_id: str) -> dict:
-        return self.orders.get(order_id, {"status": "UNKNOWN"})
+        order = self.orders.get(order_id, {})
+        return {"status": order.get("status", "UNKNOWN"), "price": order.get("price", 0), "quantity": order.get("quantity", 0)}
