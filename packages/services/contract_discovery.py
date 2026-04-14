@@ -55,39 +55,61 @@ class ContractDiscoveryService:
         Finds the nearest expiry option contract for a given strike and timestamp.
         Checks cache first if loaded.
         """
-        dt_iso = DateUtils.market_timestamp_to_iso(current_ts)
+        current_dt = DateUtils.market_timestamp_to_datetime(current_ts)
+        midnight_iso = DateUtils.to_iso(current_dt.replace(hour=0, minute=0, second=0, microsecond=0))
         opt_type_num = 3 if is_ce else 4  # CE=3, PE=4 in XTS
 
-        # 1. Check Cache
+        # 1. Gather all active expiries on or after today
         if self._is_cache_loaded:
             cache = self._cache.get((symbol, series), [])
-            # Filter and sort by expiry
+            expiries = sorted({c["contractExpiration"] for c in cache if c["contractExpiration"] >= midnight_iso})
+        else:
+            expiries = sorted(self.db[settings.INSTRUMENT_MASTER_COLLECTION].distinct(
+                "contractExpiration",
+                {"name": symbol, "series": series, "contractExpiration": {"$gte": midnight_iso}}
+            ))
+
+        if not expiries:
+            logger.warning(f"No active expiries found for {symbol} on or after {midnight_iso}")
+            return None, None
+
+        target_expiry = expiries[0]
+
+        # 2. Explicit Expiry Jump Logic
+        try:
+            nearest_expiry_dt = DateUtils.parse_iso(target_expiry)
+            cutoff_time = datetime.strptime(settings.TRADE_EXPIRY_JUMP_CUTOFF, "%H:%M:%S").time()
+            if nearest_expiry_dt.date() == current_dt.date():
+                if current_dt.time() >= cutoff_time:
+                    if len(expiries) > 1:
+                        target_expiry = expiries[1]
+                        logger.info(f"⏭️ Expiry Jump Triggered! Time {current_dt.time()} >= {cutoff_time}. Switching to Next Week: {target_expiry}")
+                    else:
+                        logger.warning(f"⚠️ Expiry Jump Triggered but no next week contract found. Defaulting to {target_expiry}")
+        except Exception as e:
+            logger.error(f"Error evaluating explicit expiry jump, using nearest expiry: {e}")
+
+        # 3. Fetch Contract exactly matching target_expiry
+        if self._is_cache_loaded:
             matches = [
-                c
-                for c in cache
-                if c["strikePrice"] == strike and c["optionType"] == opt_type_num and c["contractExpiration"] >= dt_iso
+                c for c in cache
+                if c["strikePrice"] == strike and c["optionType"] == opt_type_num and c["contractExpiration"] == target_expiry
             ]
             if matches:
-                # Sort by expiry to get the nearest one
-                matches.sort(key=lambda x: x["contractExpiration"])
-                contract = matches[0]
+                return int(matches[0]["exchangeInstrumentID"]), matches[0].get("description", matches[0].get("displayName"))
+        else:
+            query = {
+                "name": symbol,
+                "series": series,
+                "strikePrice": strike,
+                "optionType": opt_type_num,
+                "contractExpiration": target_expiry,
+            }
+            contract = self.db[settings.INSTRUMENT_MASTER_COLLECTION].find_one(query)
+            if contract:
                 return int(contract["exchangeInstrumentID"]), contract.get("description", contract.get("displayName"))
 
-        # 2. Fallback to DB
-        query = {
-            "name": symbol,
-            "series": series,
-            "strikePrice": strike,
-            "optionType": opt_type_num,
-            "contractExpiration": {"$gte": dt_iso},
-        }
-
-        contract = self.db[settings.INSTRUMENT_MASTER_COLLECTION].find_one(query, sort=[("contractExpiration", 1)])
-
-        if contract:
-            return int(contract["exchangeInstrumentID"]), contract.get("description", contract.get("displayName"))
-
-        logger.warning(f"No {symbol} {'CE' if is_ce else 'PE'} contract found for strike {strike} at {dt_iso}")
+        logger.warning(f"No {symbol} {'CE' if is_ce else 'PE'} contract found for strike {strike} at expiry {target_expiry}")
         return None, None
 
     def get_strike_window_ids(

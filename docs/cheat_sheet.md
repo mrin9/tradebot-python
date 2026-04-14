@@ -321,7 +321,7 @@ python apps/cli/main.py live-trade \
   [--tsl-pct FLOAT] \
   [--use-be / --no-use-be] \
   [--tsl-id TEXT] \
-  [--record-papertrade / --no-record-papertrade] \
+  [--papertrade] \
   [--debug / --no-debug] \
   [--log-active-indicator / --no-log-active-indicator] \
   [--mock TEXT]
@@ -338,17 +338,18 @@ python apps/cli/main.py live-trade \
 - `--budget, -b TEXT`
   - Default: `"200000-inr"`
 - `--sl-pct, -l FLOAT`
-  - Default: `10.0`
+  - Default: `4.0`
 - `--target-pct, -t TEXT`
-  - Default: `"10,20,30"`
+  - Default: `"3"`
 - `--tsl-pct, -L FLOAT`
-  - Default: `0.0`
+  - Default: `0.5`
 - `--use-be, -e / --no-use-be`
   - Default: `True`
 - `--tsl-id, -T TEXT`
   - Default: `"trade-ema-5"`
-- `--record-papertrade / --no-record-papertrade`
-  - Default: `True`
+- `--papertrade`
+  - Boolean flag. If present, uses `MockOrderManager` (simulated orders with live quotes). If absent, uses `XTSOrderManager` (real money MARKET orders).
+  - Default: absent (real money mode).
 - `--debug / --no-debug`
   - Default: `False`
 - `--log-active-indicator / --no-log-active-indicator`
@@ -357,12 +358,27 @@ python apps/cli/main.py live-trade \
 - `--mock, -m TEXT`
   - Default: `None`
   - Replay historical data via the embedded socket simulator instead of real XTS.
-  - Single date: `--mock 2025-04-10`
-  - Date range: `--mock 2025-04-07:2025-04-10`
+  - Single date: `--mock 2026-04-10`
+  - Date range: `--mock 2026-04-07:2026-04-10`
+
+**Order Manager Selection**
+
+| Flag | Manager | Orders |
+|------|---------|--------|
+| `--papertrade` | `MockOrderManager` | Simulated, live quote price |
+| *(absent)* | `XTSOrderManager` | Real MARKET orders |
+
+**EOD Controls (Configurable in `.env`)**
+
+| Setting | Default | Effect |
+|---------|---------|--------|
+| `TRADE_EXPIRY_JUMP_CUTOFF` | `14:30:00` | Switch to Next Week contract on expiry day |
+| `TRADE_LAST_ENTRY_TIME` | `15:00:00` | Block new entries after this time |
+| `TRADE_SQUARE_OFF_TIME` | `15:15:00` | Force-close all open positions |
 
 **Description**
 
-- Starts the `LiveTradeEngine` for real‑time trading using XTS sockets and the configured strategy.
+- Starts the `LiveTradeEngine` for real-time trading using XTS sockets and the configured strategy.
 
 ---
 

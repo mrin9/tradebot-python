@@ -1,12 +1,12 @@
 ## Functional & Code Explanation
 
-This document provides a **conceptual walkthrough** of how the core engine works, mapping major functional pieces (indicator calculation, candle resampling, fund manager, etc.) to concrete modules and classes in the codebase.
+This document provides a **conceptual walkthrough** of how the core engine works, mapping major functional pieces to concrete modules and classes in the codebase. It reflects the current production architecture including papertrade/live execution split, EOD safety controls, and explicit expiry‑day rollover logic.
 
 ---
 
 ## 1. End‑to‑End Flow: From Data to Trades
 
-At a high level, whether you are backtesting or live trading, the system processes raw data into executed trades through a continuous pipeline:
+At a high level, whether backtesting or live trading, the system processes raw data into executed trades through a continuous pipeline:
 
 ```mermaid
 flowchart TD
@@ -14,9 +14,9 @@ flowchart TD
     
     subgraph Core Engine Handling
     B -->|Update| C[Tick Cache\n& Market Time]
-    B -->|Check| D[DriftManager\nExpiry & Strike Shift]
+    B -->|Check| D[ContractDiscoveryService\nExpiry & Strike Resolution]
     B -->|Feed Data| E[CandleResampler\nSPOT & Options]
-    B -->|Update State| F[PositionManager\nPrice updates for SL/TSL/Targets]
+    B -->|Update State| F[PositionManager\nSL/TSL/Targets + EOD Guards]
     end
     
     E -->|On Resampled\nSPOT Candle Closed| G[IndicatorCalculator]
@@ -24,15 +24,18 @@ flowchart TD
     H -->|Emit Signal| I(FundManager Entry/Exit)
     I -->|Execute via OrderManager| J[PositionManager]
     
-    J -->|Results Summary| K[(Persistence & Logging\nMongo)]
+    J -->|papertrade flag?| K{Order Router}
+    K -->|--papertrade| L[MockOrderManager\nLive Quote + Simulated Fill]
+    K -->|live default| M[XTSOrderManager\nReal MARKET Orders]
+    
+    J -->|Results Summary| N[(Persistence & Logging\nMongo)]
 ```
 
 1. **Data source** provides raw market data:
    - DB cursor over `nifty_candle` / `options_candle` (backtest DB mode).
    - Socket simulator (`packages/simulator/socket_server.py`) (backtest socket mode).
    - XTS sockets via `LiveTradeEngine` (live mode).
-2. Each tick or base candle is passed into:
-   - `FundManager.on_tick_or_base_candle(market_data: dict)`.
+2. Each tick or base candle is passed into `FundManager.on_tick_or_base_candle(market_data: dict)`.
 3. `FundManager`:
    - Updates **tick cache** and global market time.
    - Feeds data to **CandleResampler** instances for SPOT and options.
@@ -40,83 +43,70 @@ flowchart TD
    - On resampled SPOT candle close:
      - Recomputes indicators via **IndicatorCalculator**.
      - Calls **Python strategy logic**.
-     - Executes entry/exit decisions using `PositionManager` and `PaperTradingOrderManager`.
-4. Results (trades, papertrade events, session summaries) are:
+     - Executes entry/exit decisions using `PositionManager`.
+4. `PositionManager` enforces all **EOD time guards** on every tick and routes execution to either `MockOrderManager` or `XTSOrderManager` based on the `papertrade` flag.
+5. Results (trades, events, session summaries) are:
    - Logged to console (through `log_utils` and `trade_formatter`).
-   - Optionally persisted to Mongo (`trade_persistence`, `papertrade`, `livetrade`).
+   - Persisted to Mongo (`livetrade`, `mock_api`).
 
 ---
 
-### 1.1 Events and Inter-Module Communication
+### 1.1 Events and Inter‑Module Communication
 
 The core engine relies on two primary mechanisms of data progression: **Tick Events** and **Candle Close Events**.
 
 #### Tick Events vs Candle Close Events
-- **Tick Event (`on_tick_or_base_candle`)**: Every single piece of lowest-granularity data triggers this event. In Live mode, this is a literal XTS trade stream tick. In backtesting, this is usually a 1-minute historical DB candle (which is then exploded into multiple 'virtual ticks' for high fidelity simulation). The primary actions here are:
+- **Tick Event (`on_tick_or_base_candle`)**: Every single piece of lowest-granularity data triggers this event. In Live mode, this is a literal XTS trade stream tick. In backtesting, this is usually a 1-minute historical DB candle. The primary actions here are:
   - Validating contract drift.
   - Updating the `PositionManager` with real-time instrument prices so SL and Target hits can be evaluated dynamically, *intra-candle*.
+  - Checking EOD time guards (`TRADE_SQUARE_OFF_TIME`).
   - Handing the data chunk into the `CandleResampler`.
-- **Candle Close Event (`_on_resampled_candle_closed`)**: This triggers far less frequently—only when the `CandleResampler` observes that accumulated ticks have crossed the boundary of its higher timeframe (e.g., forming a complete 3-minute candle).
+- **Candle Close Event (`_on_resampled_candle_closed`)**: Triggers far less frequently — only when the `CandleResampler` observes that accumulated ticks have crossed the boundary of its higher timeframe (e.g., forming a complete 3-minute candle).
   - This is the **decision point** of the engine.
   - Indicators are computed ONLY on a candle close event.
   - The Python Strategy file is executed ONLY on a candle close event.
+  - Checks `TRADE_LAST_ENTRY_TIME` before allowing new entries.
 
 #### Candle Accumulation and Calculation
-The `CandleResampler` continuously groups incoming ticks by their timestamp slice. It delays finalizing a candle until the incoming market time exceeds the current `interval_seconds` bucket. Once finalized, these OHLCV values form a definitive historical bar. That bar is appended to the `IndicatorCalculator` deques, which recalculate moving averages and supertrends over the updated dataset.
+The `CandleResampler` continuously groups incoming ticks by their timestamp slice. It delays finalizing a candle until the incoming market time exceeds the current `interval_seconds` bucket. Once finalized, these OHLCV values form a definitive historical bar pushed to the `IndicatorCalculator`.
 
 #### Full Warmup vs. Incremental Ticks
-- **Full Historical Warmup**: Before the engine handles active signals, it requires a trailing history buffer to make indicators like EMA and Supertrend computationally stable. `MarketHistoryService` fetches bulk past candles right before the session starts and pushes them consecutively through the Resampler and Indicator modules. During this phase, `FundManager.is_warming_up = True`, meaning any signals or side effects the strategy produces are strictly discarded.
-- **Incremental Live Ticks**: Once the history buffer loading is finished, live continuous playback begins. Ticks arrive one by one. The engine now applies active processing (monitoring positions on every tick, logging PnL) and acts upon the signals generated at candle close.
+- **Full Historical Warmup**: Before handling active signals, the engine requires a trailing history buffer to make indicators like EMA computationally stable. `MarketHistoryService` fetches bulk past candles and pushes them through the resampler. During this phase, `FundManager.is_warming_up = True`, meaning all signals are discarded.
+- **Incremental Live Ticks**: Once the buffer is loaded, live playback begins. The engine applies active processing and acts upon signals generated at candle close.
 
 ---
 
 ### 1.2 Example: Single LONG Trade Lifecycle
 
-To make the above more concrete, here is a typical **LONG** trade lifecycle in either backtest or live mode:
-
 1. **Warm‑up**
-   - `MarketHistoryService` feeds past candles into:
-     - `CandleResampler` (build higher‑timeframe bars).
-     - `IndicatorCalculator` (prime indicator series).
-   - `FundManager.is_warming_up = True` → all signals are ignored during this phase.
+   - `MarketHistoryService` feeds past candles into `CandleResampler` and `IndicatorCalculator`.
+   - `FundManager.is_warming_up = True` → signals ignored.
 2. **First valid SPOT candle close**
    - Resampled SPOT candle closes; `_on_resampled_candle_closed` is called.
    - Indicators are recalculated and mapped (`active-*`, `inverse-*`).
-   - Strategy sees `current_position_intent=None` and emits either:
-     - `SignalType.NEUTRAL` → do nothing.
-     - `SignalType.LONG` / `SignalType.SHORT` → proceed to entry logic.
+   - Strategy emits `SignalType.LONG`.
+   - **`TRADE_LAST_ENTRY_TIME` check**: If candle timestamp is `>= 15:00`, the entry is blocked.
 3. **Entry**
-   - `FundManager` determines:
-     - Direction intent (LONG for CALL, SHORT for PUT in options mode).
-     - Target instrument:
-       - For OPTIONS, uses `DriftManager`’s `active_instruments["CE"]` or `["PE"]`.
-   - Entry price:
-     - Pulls from latest tick cache or, if needed, history fallback.
-   - Position size (lots):
-     - If specified as `-lots` or `-lot` (e.g. `10-lots`), uses that fixed count.
-     - If specified as `-inr` (e.g. `200000-inr`), uses realized PnL + initial budget if compounding (`invest_mode="compound"`) or initial budget if fixed.
-   - `PositionManager.on_signal` is called with:
-     - `symbol`, `price`, `intent`, `targets`, `sl_points`, `tsl_points`, etc.
+   - `FundManager` determines direction intent and target instrument.
+   - `ContractDiscoveryService.resolve_option_contract` resolves the exact instrument ID:
+     - **Expiry Jump Rule**: If today is expiry day and the candle timestamp is `>= TRADE_EXPIRY_JUMP_CUTOFF` (default `14:30`), execution shifts to the Next Week contract automatically.
+   - Entry price pulled from live tick cache or `get_quote` fallback.
+   - `PositionManager.on_signal` is called with the resolved symbol, price, and intent.
+   - **Order Manager routes**:
+     - `--papertrade` → `MockOrderManager` fires `get_quote` for real LTP, simulates fill & records to `mock_api`.
+     - live default → `XTSOrderManager` fires a real `MARKET` order via XTS Interactive API.
 4. **Active Position Management**
-   - Every relevant tick calls `PositionManager.update_tick` with:
-     - Current option price.
-     - Spot price (for PnL context).
-     - Mapped indicators (for indicator‑driven trailing).
-   - `PositionManager`:
-     - Tracks current SL and targets.
-     - Applies BE move when Target 1 is hit (if enabled).
-     - Applies point‑based or indicator‑based trailing SL.
+   - Every relevant tick calls `PositionManager.update_tick`.
+   - **`TRADE_SQUARE_OFF_TIME` check**: If tick timestamp is `>= 15:15`, the position is force-closed with reason `EOD_SQUARE_OFF`.
+   - `PositionManager` applies BE move, trailing SL, indicator-based TSL.
 5. **Exit**
-   - Exit can be triggered by:
-     - Strategy `SignalType.EXIT` or flip (LONG→SHORT / SHORT→LONG).
-     - SL/TSL/target hits inside `PositionManager`.
-     - EOD settlement (`FundManager.handle_eod_settlement`).
+   - Triggered by: strategy `EXIT`/flip signal, SL/TSL/target hit, or `EOD_SQUARE_OFF`.
    - On exit:
      - `PositionManager._close_position` finalizes trade.
-     - `PaperTradingOrderManager` records PnL and lifecycle.
-     - Optional persistence to Mongo (`papertrade`, `backtest`, `livetrade`).
+     - `MockOrderManager` or `XTSOrderManager` executes the SELL.
+     - Persistence to Mongo (`livetrade`, `mock_api`).
 
-This lifecycle is **identical** across backtests and live trading; only the **source** of ticks/candles differs.
+This lifecycle is **identical** across backtests and live trading; only the **source** of ticks/candles and the **order manager** differ.
 
 ---
 
@@ -144,16 +134,6 @@ Class: `CandleResampler`
     - Starts a new candle for the new period.
   - Aggregates open/high/low/close/volume into the current candle.
 
-### 2.3 Why It Matters
-
-Strategies are almost always designed in terms of **higher‑timeframe candles** (e.g., 3‑minute NIFTY candles).  
-`CandleResampler` ensures:
-
-- Compatible time buckets between backtest and live.
-- Clean separation of:
-  - Timeframe‑specific logic (resampler).
-  - Strategy decisions (FundManager + Python strategy).
-
 ---
 
 ## 3. Indicator Calculation
@@ -171,11 +151,7 @@ Class: `IndicatorCalculator`
   - Each config typically has:
     - `indicatorId`: logical name (e.g., `fast_ema`).
     - `indicator`: shorthand (e.g., `ema-5`, `rsi-14`, `supertrend-10-3`).
-    - `InstrumentType`: one of:
-      - `SPOT`
-      - `CE`
-      - `PE`
-      - `OPTIONS_BOTH` (applied to both CE and PE).
+    - `InstrumentType`: one of `SPOT`, `CE`, `PE`, `OPTIONS_BOTH`.
 
 ### 3.3 Internal State
 
@@ -191,71 +167,20 @@ When `add_candle` is called:
 2. Append the normalized candle to a deque for that `instrument_id`.
 3. Create a Polars `DataFrame` from the deque.
 4. Filter `indicators_config` for rules matching this category.
-5. For each relevant indicator:
-   - Parse `indicator_str` (e.g., `"ema-5"`).
-   - Call `calculate_indicator(df, indicator_str, result_key)`.
-6. Extract **last row** (and previous row) for each indicator key:
-   - Prefix keys based on category:
-     - `nifty-*` for SPOT.
-     - `ce-*` for CE.
-     - `pe-*` for PE.
+5. For each relevant indicator: parse `indicator_str` and calculate it.
+6. Extract **last row** (and previous row) for each indicator key with category prefix.
 7. Store results in `latest_results[instrument_id]`.
-
-The engine then uses `extract_indicators(instrument_id, category)` to fetch the latest snapshot when mapping to strategy inputs.
 
 ### 3.5 Supported Shorthands
 
-Examples (from `calculate_indicator`):
-
-- `ema-N`
-- `sma-N`
-- `rsi-N`
-- `atr-N`
+- `ema-N`, `sma-N`, `rsi-N`, `atr-N`
 - `supertrend-period-multiplier`
-- `macd-fast-slow-signal`
-- `bbands-period-multiplier`
-- `vwap`
-- `obv`
-- `price`
+- `macd-fast-slow-signal`, `bbands-period-multiplier`
+- `vwap`, `obv`, `price`
 
-Adding a new shorthand generally means extending `calculate_indicator`.
+### 3.6 Indicator Anti-Stale Rule
 
----
-
-### 3.6 Deep Dive: Supertrend Implementation
-
-Supertrend is more complex than simple EMA/SMA, and it is implemented with a mix of Polars and NumPy:
-
-1. **True Range (TR) and ATR**:
-   - Compute previous close series.
-   - Use three candidate ranges:
-     - `high - low`
-     - `abs(high - prev_close)`
-     - `abs(low - prev_close)`
-   - Take the element‑wise max to get TR.
-   - Apply an exponentially weighted moving average over TR to get ATR.
-2. **Basic Bands**:
-   - `hl2 = (high + low) / 2`
-   - `upper_basic = hl2 + multiplier * atr`
-   - `lower_basic = hl2 - multiplier * atr`
-3. **Final Bands & Direction**:
-   - Use a **single NumPy loop** to:
-     - Maintain `upper_final`, `lower_final`, and a `direction` flag (`1` for bullish, `-1` for bearish).
-     - Enforce continuity rules:
-       - If price stays above/below bands, bands can only move in favorable directions.
-   - The “supertrend” series is either the upper or lower final band depending on trend direction.
-4. **Result Columns**:
-   - Writes:
-     - `result_key` as the numeric Supertrend level.
-     - `f"{result_key}-dir"` as direction (`1` / `-1`).
-
-The engine extracts both columns for SPOT/CE/PE and then exposes them as:
-
-- `nifty-<id>` / `nifty-<id>-dir`
-- `ce-<id>` / `ce-<id>-dir`
-- `pe-<id>` / `pe-<id>-dir`
-
-This allows strategies to build rules like “only go long when Supertrend direction is bullish on both SPOT and active option”.
+The indicator calculator is invalidated across session gaps (overnight). A candle arriving with a timestamp that represents a new calendar day after a gap will reset the indicator state to prevent previous-session momentum from leaking into fresh intraday signals.
 
 ---
 
@@ -280,172 +205,164 @@ Class: `FundManager`
 The constructor receives:
 
 - `strategy_config`: normalized strategy document (from `TradeConfigService`).
-- `position_config`: budget (e.g. `200000-inr` or `10-lots`), SL/TSL, targets, pyramiding, instrument type, `python_strategy_path`, etc.
-- Optional services:
-  - `config_service` (`TradeConfigService`).
-  - `discovery_service` (`ContractDiscoveryService`).
-  - `history_service` (`MarketHistoryService`).
-- Optional dependencies:
-  - `fetch_ohlc_fn`, `fetch_quote_fn` (legacy injection).
-  - `drift_manager` override.
+- `position_config`: budget, SL/TSL, targets, pyramiding, instrument type, `python_strategy_path`, `papertrade` flag.
+- Optional services: `config_service`, `discovery_service`, `history_service`.
 
 It then:
 
-1. Normalizes configs and builds:
-   - `IndicatorCalculator` with `indicators_config`.
-   - `PositionManager` with risk and pyramiding parameters.
-   - `PaperTradingOrderManager` and attaches it to the position manager.
-2. Loads the Python strategy using `PythonStrategy` and `python_strategy_path`.
-3. Sets up:
-   - `DriftManager` to track current SPOT/CE/PE instruments.
-   - `CandleResampler` instances per active instrument and global timeframe.
-4. Prepares indicator mapping cache:
-   - Raw indicators → mapped `active-*` / `inverse-*` views.
+1. Normalizes configs and builds `IndicatorCalculator`, `PositionManager`.
+2. Reads `papertrade` from `position_config` and instantiates the correct `OrderManager`:
+   - `True` → `MockOrderManager(fetch_quote_fn=...)` for simulated fills with real LTP.
+   - `False` (default) → `XTSOrderManager()` for real MARKET orders.
+3. Loads the Python strategy using `PythonStrategy` and `python_strategy_path`.
+4. Sets up `ContractDiscoveryService` to track current SPOT/CE/PE instruments.
+5. Prepares indicator mapping cache: raw indicators → mapped `active-*` / `inverse-*` views.
 
 ### 4.3 Tick / Candle Handling
 
 `on_tick_or_base_candle(market_data: dict)`:
 
 1. Determines `inst_id`, `timestamp`, and whether this is SPOT or option.
-2. Updates:
-   - `latest_market_time`.
-   - Tick cache (`latest_tick_prices[inst_id]`).
+2. Updates `latest_market_time` and tick cache.
 3. Normalizes OHLC for pure ticks (if only `p` is present).
-4. For SPOT ticks:
-   - Triggers `DriftManager.check_drift(price, ts)` to handle contract changes.
-5. If a position is open:
-   - Updates `PositionManager` via either:
-     - Real ticks (live/socket).
-     - Expanded **virtual ticks** (backtest candle exploded via `ReplayUtils`) for high‑fidelity SL/TSL simulation.
-6. Routes data to relevant `CandleResampler` based on:
-   - `active_instruments` from `DriftManager` (SPOT/CE/PE).
-   - The traded symbol (if drifted).
-7. On resampled SPOT candle close:
-   - Calls `_on_resampled_candle_closed`, which:
-     - Updates `IndicatorCalculator`.
-     - Refreshes indicator mapping cache.
-     - Synchronizes lagging option resamplers.
-     - Logs heartbeat if enabled.
-     - Calls strategy logic (`PythonStrategy.on_resampled_candle_closed`).
-     - Handles entries/exits via `PositionManager`.
-     - Recomputes lot size based on compounding or fixed budget.
-     - Optionally propagates an `on_signal` callback for external consumers.
+4. For SPOT ticks: triggers strike resolution via `ContractDiscoveryService`.
+5. If a position is open: updates `PositionManager` (tick-level SL/TSL/target checks and EOD square-off).
+6. Routes data to relevant `CandleResampler`.
+7. On resampled SPOT candle close: calls `_on_resampled_candle_closed`.
 
 ### 4.4 Indicator Mapping (Active/Inverse)
 
 `_get_mapped_indicators`:
 
 1. Pulls SPOT (`nifty-*`), CE (`ce-*`), and PE (`pe-*`) indicator values.
-2. Depending on whether:
-   - There is an open position.
-   - It is long or short.
-3. Applies `_apply_active_inverse_mapping`:
-   - Active side (e.g., current traded CE when long) gets `active-*` prefix.
+2. Based on current position direction, applies `_apply_active_inverse_mapping`:
+   - Active side (e.g., CE when long) gets `active-*` prefix.
    - Opposite side (PE) gets `inverse-*` prefix.
 
-Strategies then:
-
-- Read `active-*` keys to drive trailing SL, exits, or additional filters.
-- Can also inspect raw `nifty-*`, `ce-*`, `pe-*` keys if needed.
-
-### 4.5 Signal Handling
+### 4.5 Signal Handling & Entry Guards
 
 `_on_resampled_candle_closed`:
 
 1. Calls strategy: `(signal, reason, confidence)`.
 2. Ignores signals during warm‑up.
-3. Discards signals generated from **stale data** (older than a configured threshold).
-4. Handles:
-   - Exit signals when in a position.
-   - Flip signals (LONG→SHORT, SHORT→LONG).
-   - Fresh entries when flat.
+3. Handles exit signals, flip signals, and fresh entries.
+4. **`TRADE_LAST_ENTRY_TIME` guard** (inside `PositionManager.on_signal`): if new entry timestamp is `>= 15:00`, the entry is rejected with log `🛑 Late Day Block`.
 5. Calculates **entry price** for options using `_get_fallback_option_price`.
-6. Builds a payload and delegates to:
-   - `PositionManager.on_signal(payload)` for actual position changes.
-   - Optional external `on_signal` callback.
+6. Builds a `SignalPayload` and delegates to `PositionManager.on_signal`.
 
 ---
 
-### 4.6 Backtest vs Live: Behavior Differences
+## 5. Contract Discovery & Expiry Rollover
 
-Although the decision logic is shared, `FundManager` behaves slightly differently depending on `is_backtest`:
+### 5.1 Responsibility
 
-> [!WARNING]
-> **The "0 Trades" Backtest Issue**: Backtests require strict chronological data alignment between SPOT and the active Options contracts. If you select a backtest date string, but the `options_candle` collection is sparse or missing contracts for that specific expiry week, the strategy will correctly sit idle (0 trades generated). **Always run `check_gaps` and `fill_gaps` (or the unified `data_gaps.py` script)** prior to testing a new date range.
+Module: `packages/services/contract_discovery.py`  
+Class: `ContractDiscoveryService`
 
-- **Price source**:
-  - Backtest:
-    - Uses `price_source` from `position_config` (`"open"` or `"close"`) when reading candles.
-  - Live/Socket:
-    - Uses tick price (`p` / `ltp`) as the primary source.
-- **Tick density**:
-  - Backtest:
-    - For 1‑minute bars, can explode each bar into multiple **virtual ticks** (O, H, L, C) via `ReplayUtils` so that:
-      - Trailing SL / BE logic sees intra‑bar moves similar to live.
-  - Live/Socket:
-    - Receives actual tick stream and updates positions per tick directly.
-- **History source**:
-  - Backtest:
-    - Can rely solely on candles already stored in Mongo.
-  - Live:
-    - Uses `MarketHistoryService` with API/DB fallback to reconstruct candles for warm‑up and missing tick scenarios.
-- **Warm‑up**:
-  - Both modes:
-    - Use warm‑up, but live mode usually has a more explicit separation between warm‑up and trading session start around market open.
+**Goal**: Resolve which exact exchange instrument ID to trade, given a spot price, strike selection, and current time.
 
-Understanding these differences is crucial when comparing backtest vs live performance and investigating discrepancies.
+### 5.2 Explicit Expiry Day Rollover
 
----
+When `resolve_option_contract` is called:
 
-### 4.7 Strict Live-Trade Data Dependencies
+1. All expiry dates for the symbol are retrieved from the cache or DB starting from midnight today.
+2. The **nearest expiry date** is determined.
+3. **Expiry Jump Rule**:
+   - If `nearest_expiry_date == today` **AND** `current_time >= TRADE_EXPIRY_JUMP_CUTOFF` (default `14:30`):
+     - The `target_expiry` is explicitly set to the **second nearest expiry** (Next Week).
+     - Log: `⏭️ Expiry Jump Triggered! Switching to Next Week: <date>`
+   - Otherwise: target remains the current week.
+4. The instrument is fetched using an exact equality match on `target_expiry` (no implicit overflow).
 
-While backtesting reads a closed-loop timeline from the database, **live trading** requires a critical interplay between daily database updates and a live socket stream. Before the active `LiveTradeEngine` can analyze a single incoming tick, the following dependencies MUST be satisfied:
+> [!IMPORTANT]
+> EMA signals are always computed on the **Current Week** contract (tracking via `DriftManager`). Only **execution** jumps to Next Week after the cutoff. This means your momentum indicators are always based on liquid, well-followed premium data, while you avoid Theta/Gamma explosions at expiry.
 
-1. **`instrument_master` Refresh**: This MongoDB collection MUST be updated daily (`python apps/cli/main.py update_master`). The live feed streams numerical instrument IDs, not human-readable symbols. The engine requires the active master table to translate arbitrary IDs into specific strike prices, options types (`CE`/`PE`), and expiries.
-2. **Historical XTS API Warmup**: If a strategy depends on a moving average or supertrend on a 3-minute chart, that indicator is mathematically invalid until it accumulates sufficient history. At startup, the `FundManager` triggers a **Live Warmup Phase**. It queries the `MarketHistoryService` with `use_api=True`, which fetches the required historical timeframe blocks (e.g., the last few days of 1-minute candles) directly from the **XTS Historical Data API**, bypassing the local MongoDB collections. This guarantees the engine has up-to-the-minute accurate data for indicators, regardless of whether local sync scripts were run that morning.
-3. **Dynamic Strike Computation (`ContractDiscoveryService`)**: The engine never hardcodes the target option symbol. When the engine begins streaming live Nifty spot ticks via the socket, `ContractDiscoveryService`:
-   - Takes the live spot price from the **live XTS stream** (e.g., `22,431`).
-   - Rounds it to the nearest established ATM strike (e.g., `22,450`).
-   - Queries the local `instrument_master` for the closest active expiry ID corresponding to `NIFTY 22450 CE`.
-   - Sends a dynamic subscription request via the active XTS Socket to begin tracking that new instrument's live ticks.
+### 5.3 ATM Strike Drift
+
+When SPOT price shifts significantly, the ATM strike updates:
+
+- `get_atm_strike(spot_price, step=50)` rounds spot to the nearest multiple of 50.
+- `get_target_strike` resolves `ATM`, `ITM-x`, or `OTM-x` from the computed ATM with iterative fallback towards ATM if the requested strike has no active contract.
 
 ---
 
-## 5. Position & Order Management
+## 6. Position & Order Management
 
-### 5.1 PositionManager
+### 6.1 PositionManager
 
 Module: `packages/tradeflow/position_manager.py`
 
-**Goal**: Convert signals and tick updates into a **single open position** at a time with:
+**Goal**: Convert signals and tick updates into a **single open position** at a time with SL/TSL enforcement, targets, partial exits, and pyramiding.
 
-- SL and TSL enforcement.
-- Targets and partial exits.
-- Pyramiding (multi‑step position builds).
+#### Time Guards (All in `PositionManager`)
 
-Responsibilities include:
+| Guard | Location | Behavior |
+|-------|----------|----------|
+| `TRADE_START_TIME` (`09:20`) | `on_signal` | Ignores signals before market opens |
+| `TRADE_LAST_ENTRY_TIME` (`15:00`) | `on_signal` — new entry block | Rejects new LONG/SHORT entries; exits still work |
+| `TRADE_SQUARE_OFF_TIME` (`15:15`) | `update_tick` | Force-closes any open position with `EOD_SQUARE_OFF` |
 
-- Maintaining:
-  - Current position: symbol, intent (LONG/SHORT), entry price, quantity.
-  - History of closed trades with entry/exit, PnL, reasons.
-- Reacting to:
-  - On‑signal events for entries/exits.
-  - Tick updates with optional indicator state for trailing logic.
+### 6.2 Order Manager Architecture
 
-### 5.2 PaperTradingOrderManager
+```mermaid
+classDiagram
+    class OrderManager {
+        <<abstract>>
+        +place_order(symbol, side, qty, ...)
+        +get_order_status(order_id)
+    }
 
-Module: `packages/tradeflow/order_manager.py`
+    class MockOrderManager {
+        +fetch_quote_fn: callable
+        +place_order(): fires get_quote for real LTP
+        +get_order_status(): returns simulated FILLED
+        stores: mock_api collection
+    }
 
-**Goal**: Provide a pluggable order execution abstraction.
+    class XTSOrderManager {
+        +place_order(): MARKET order via XTS Interactive API
+        +get_order_status(): get_order_history from XTS
+        exchange: real NSE fills
+    }
 
-In this project:
+    class PaperTradingOrderManager {
+        +place_order(): in-memory simulation
+        stores: backtest collection
+    }
 
-- Implementation simulates fills and PnL (paper trading).
-- Used by both:
-  - Backtests.
-  - Live sessions when `record_papertrade_db` is enabled.
+    OrderManager <|-- MockOrderManager
+    OrderManager <|-- XTSOrderManager
+    OrderManager <|-- PaperTradingOrderManager
+```
 
-### 5.3 Example: Multi‑Target Pyramid Trade
+**Selection logic in `FundManager.__init__`:**
+
+```
+is_backtest=True  →  PaperTradingOrderManager  (or MockOrderManager if USE_MOCK_ORDER_MANAGER)
+papertrade=True   →  MockOrderManager(fetch_quote_fn=get_quote)
+papertrade=False  →  XTSOrderManager  (REAL MONEY)
+```
+
+#### MockOrderManager Behavior (Papertrade)
+
+When `place_order` is called:
+1. Fires `get_quote(segment, instrument_id)` via XTS market API to retrieve the **real-time LTP**.
+2. Uses that exact LTP as the `OrderAverageTradedPrice` (simulated fill).
+3. Persists the full mock order lifecycle to the `mock_api` MongoDB collection.
+4. This eliminates the "stale data" problem where a historical fallback price would be used instead of the actual current market price.
+
+#### XTSOrderManager Behavior (Live)
+
+When `place_order` is called:
+1. Submits a `MARKET` order to the XTS Interactive API.
+2. Returns the `AppOrderID`.
+
+When `get_order_status` is called:
+1. Fetches `get_order_history(AppOrderID)` from XTS.
+2. Reads `OrderAverageTradedPrice` from the final filled state (the true exchange fill price).
+3. Returns this to `PositionManager` for accurate PnL calculation.
+
+### 6.3 Example: Multi‑Target Pyramid Trade
 
 ```mermaid
 sequenceDiagram
@@ -454,7 +371,7 @@ sequenceDiagram
     participant M as Market (Ticks)
     
     S->>PM: on_signal(LONG, 25% budget)
-    Note over PM: Enters position at Price P0
+    Note over PM: Entry @ P0. Check TRADE_LAST_ENTRY_TIME
     
     loop Every Tick
         M->>PM: Mkt Price = P1 (Favorable Mvmt)
@@ -472,186 +389,157 @@ sequenceDiagram
         opt Indicator or Point TSL hit
             PM->>PM: Move SL Higher
         end
+
+        M->>PM: Tick at 15:15:00
+        opt EOD Square Off
+            PM->>PM: Force close (EOD_SQUARE_OFF)
+        end
     end
-    
-    M->>PM: Mkt Price drops below TSL
-    PM->>PM: Close remaining position
 ```
-
-Consider a configuration with:
-
-- `budget = 200000`
-- `pyramid_steps = "25,50,25"`
-- `target_points = "15,25,50"`
-- `use_be = True`
-
-The trade might play out as:
-
-1. **Entry Step 1 (25%)**
-   - First signal arrives.
-   - Quantity is computed based on budget and option price.
-   - `PositionManager` enters with 25% of the maximum quantity.
-2. **Entry Step 2 & 3 (50% + 25%)**
-   - If price moves favorably by `pyramid_confirm_pts` points between steps:
-     - Additional pyramiding entries are placed.
-3. **Targets & BE**
-   - When Target 1 is hit:
-     - Partial profit is booked.
-     - If `use_be=True`, SL is moved to entry price.
-   - When Targets 2 and 3 are hit:
-     - Remaining quantities are reduced accordingly until flat.
-4. **TSL**
-   - If `tsl_points > 0` or `tsl_id` is set:
-     - SL is trailed at each favorable move or according to indicator value.
-
-All of this logic lives inside `PositionManager`, ensuring the **strategy code itself** only decides “LONG / SHORT / EXIT”, while risk details stay centralized.
 
 ---
 
-## 6. Strategies (Python Code)
+## 7. Strategies (Python Code)
 
-### 6.1 Base Strategy
+### 7.1 Base Strategy Interface
 
 Module: `packages/tradeflow/base_strategy.py`
 
-Provides the base interface that Python strategies implement:
+- `on_resampled_candle_closed(candle, indicators, current_position_intent)`
+- Returns: `(SignalType, reason_str, confidence_float)`
 
-- Typically:
-  - `on_resampled_candle_closed(candle, indicators, current_position_intent)`
-  - Returns: `(SignalType, reason_str, confidence_float)`
+### 7.2 Triple Lock Strategy
 
-### 6.2 Concrete Strategies
+Module: `packages/tradeflow/python_strategies.py`  
+Class: `TripleLockStrategy`
 
-Module: `packages/tradeflow/python_strategies.py`
+Entry conditions (CALL):
+- `ce_fast > ce_slow` (CE EMA crossover).
+- `spot_fast > spot_slow` (NIFTY confirmation).
+- `pe_fast < pe_slow` (PE inverse confirmation).
 
-Contains concrete strategy implementations such as:
+Entry conditions (PUT):
+- `pe_fast > pe_slow` (PE EMA crossover).
+- `spot_fast < spot_slow` (NIFTY confirmation).
+- `ce_fast < ce_slow` (CE inverse confirmation).
 
-- `TripleLockStrategy` (example).
+Exit:
+- Reverse crossover on the traded instrument.
 
-They encode:
+Gap Protection:
+- Crossovers generated before `TRADE_START_TIME` (09:20) are ignored, preventing gap-induced entries.
 
-- Conditions on:
-  - SPOT indicators (`nifty-*`).
-  - Option indicators (`active-*`, `inverse-*`, `ce-*`, `pe-*`).
-  - Current position intent.
-- Rules to:
-  - Go LONG or SHORT.
-  - Exit when conditions reverse or when confirming signals appear.
-
-### 6.3 Dynamic Loading
+### 7.3 Dynamic Loading
 
 Module: `packages/tradeflow/python_strategy_loader.py`  
 Class: `PythonStrategy`
 
-- Accepts a `script_path` string in the format:
-  - `path/to/file.py:ClassName`
-- Dynamically imports the module and instantiates the class.
-- Called by `FundManager` during construction using:
-  - `position_config["python_strategy_path"]` or
-  - `strategy_config["pythonStrategyPath"]`.
-
-This allows changing strategies by updating DB config, without touching engine code.
+- Accepts `script_path` in format `path/to/file.py:ClassName`.
+- Dynamically imports and instantiates the class.
+- Allows changing strategies by updating DB config, without touching engine code.
 
 ---
 
-## 7. Services & Utilities
+## 8. Services & Utilities
 
-### 7.1 TradeConfigService
+### 8.1 TradeConfigService
 
 Module: `packages/services/trade_config_service.py`
 
-Responsibilities:
+- Loads strategy documents from Mongo.
+- Normalizes them into `strategy_config` and `position_config`.
 
-- Load strategy documents from Mongo.
-- Normalize them into:
-  - `strategy_config`: engine‑friendly metadata and indicators.
-  - `position_config`: standard risk and position settings.
-
-It centralizes how raw DB schemas map to engine expectations.
-
-### 7.2 MarketHistoryService
+### 8.2 MarketHistoryService
 
 Module: `packages/services/market_history.py`
 
-Responsibilities:
+- Provides candles to the engine for warm‑up and fallback prices.
+- Combines Mongo queries with XTS Historical API calls.
 
-- Provide candles to the engine for:
-  - Warm‑up.
-  - Fallback prices.
-- May combine:
-  - Mongo queries.
-  - External history API calls.
+### 8.3 ContractDiscoveryService
 
-### 7.3 DriftManager & ContractDiscoveryService
+Module: `packages/services/contract_discovery.py`
 
-Modules:
+- Tracks active SPOT/CE/PE instruments.
+- Implements **explicit expiry‑day rollover** (see Section 5.2).
+- Computes `get_atm_strike`, `get_target_strike`, `resolve_option_contract`.
 
-- `packages/tradeflow/drift_manager.py`
-- `packages/services/contract_discovery.py`
+### 8.4 TradeEventService
 
-> [!TIP]
-> **Instrument Master Optimization**: To keep memory footprints low and sync times fast, the underlying data sync (`sync_master.py`) only pulls the `INDEX`, `FUTIDX`, and `OPTIDX` series, deliberately discarding equity data. It also hard-codes the inclusion of core IDs like `26000` (NIFTY 50) which are critical for `ContractDiscoveryService`.
+Module: `packages/services/trade_event.py`
 
-Responsibilities:
+- Mandatory (non-optional) granular trade lifecycle recording.
+- Every session — papertrade or live — writes full events to MongoDB.
+- Removed: old `record_papertrade` flag. Recording is now always enabled.
 
-- Track which instruments represent:
-  - SPOT (e.g., NIFTY cash ID).
-  - Current ATM CE/PE options.
-- Detect “drift” events:
-  - Option expiry.
-  - Week/series roll.
-  - ATM strike shifting with spot price.
-- Notify `FundManager` via `on_instruments_changed` callback to:
-  - Reset relevant resamplers.
-  - Warm‑up new contracts.
-  - Update indicator state for new IDs.
+### 8.5 DateUtils, ReplayUtils, TradeFormatter
 
-### 7.4 DateUtils, ReplayUtils, TradeFormatter
-
-Modules:
-
-- `packages/utils/date_utils.py`:
-  - Market calendars and conversions between timestamps and trading sessions.
-- `packages/utils/replay_utils.py`:
-  - Explode OHLC bars into a sequence of “virtual ticks” for realistic SL/TSL backtests.
-- `packages/utils/trade_formatter.py`:
-  - Pretty formatting of heartbeats, signals, and trades for logs.
+- `packages/utils/date_utils.py`: Market calendars and timestamp conversions.
+- `packages/utils/replay_utils.py`: Explode OHLC bars into virtual ticks for realistic backtests.
+- `packages/utils/trade_formatter.py`: Pretty formatting of heartbeats, signals, and trades.
 
 ---
 
-### 7.5 Testing & Socket Stability Context
-
-If you are developing or fixing tests, keep these operational details in mind:
-
-- **Frozen Database Namespace**: E2E engine tests rely on `tradebot_frozen` (not `tradebot_frozen_test`). This is a static snapshot of previously recorded real market data ensuring the engine behaves deterministically during refactors.
-- **XTS Socket Debugging**: If the engine logs `packet queue is empty` errors or disconnects, it is typically a heartbeat issue coming from the underlying provider. You can use the isolated scripts in `tmp_test/` (e.g., `MarketDataSocketClientOrig.py` and `debug_xts_socket.py`) to debug raw socket stability completely decoupled from the main engine logic, allowing you to tweak print frequencies without flooding stdout.
-
----
-
-## 8. CLI Integration Summary
+## 9. CLI Integration Summary
 
 Module: `apps/cli/main.py`
 
 The CLI is a thin wrapper around all of this:
 
-- **Backtest**:
+### Live Trade Command
 
-  - Gathers parameters from flags or interactive prompts.
-  - Calls `TradeConfigService` to fetch strategy config.
-  - Constructs a command for `tests.backtest.backtest_runner`.
+```bash
+python apps/cli/main.py live-trade [options]
+```
 
-- **Live Trade**:
+| Flag | Effect |
+|------|--------|
+| `--papertrade` | Uses `MockOrderManager` (live quotes, no real orders) |
+| *(absent)* | Uses `XTSOrderManager` (real MARKET orders) |
+| `--mock <date>` | Replays historical data via socket simulator |
+| `--strategy-id` | Loads strategy + indicators from DB |
+| `--budget` | Capital (`200000-inr` or `10-lots`) |
+| `--sl-pct` | Stop loss as % of entry |
+| `--target-pct` | Comma-separated profit targets |
+| `--tsl-pct` | Trailing stop loss % |
+| `--use-be` | Move SL to entry after T1 |
+| `--tsl-id` | Indicator-based trailing SL ID |
 
-  - Loads strategy config and `python_strategy_path`.
-  - Builds `position_config`.
-  - Instantiates `LiveTradeEngine` with these configs.
-  - Starts the engine (which internally constructs `FundManager`).
+### Backtest Command
 
-- **Data management / Testing helpers**:
+```bash
+python apps/cli/main.py backtest [options]
+```
 
-  - `update_master`, `sync_history`, `age_out`, `check_gaps`, `fill_gaps`.
-  - `seed_strategies`, `refresh_contracts`, `ensure_indexes`.
-  - A test menu that maps friendly names to `pytest` invocations.
+- Gathers parameters via flags / interactive prompts.
+- Calls `TradeConfigService` to fetch strategy config.
+- Constructs a command for `tests.backtest.backtest_runner`.
+- Always uses `PaperTradingOrderManager` (in-memory simulation).
 
-This keeps user‑facing commands simple while delegating all actual logic to the reusable engine modules described above.
+### Data Management
 
+- `update_master`, `sync_history`, `age_out`, `check_gaps`, `fill_gaps`.
+- `seed_strategies`, `refresh_contracts`, `ensure_indexes`.
+
+---
+
+## 10. Key Configuration Settings
+
+Settings are defined in `packages/settings.py` and overridden via `.env`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `TRADE_START_TIME` | `09:20:00` | No signals before this time |
+| `TRADE_LAST_ENTRY_TIME` | `15:00:00` | Block new entries after this time |
+| `TRADE_SQUARE_OFF_TIME` | `15:15:00` | Force-close all open positions |
+| `TRADE_EXPIRY_JUMP_CUTOFF` | `14:30:00` | Jump to next week contract on expiry day |
+| `TRADE_STOP_LOSS_PCT` | `4.0` | Default stop loss % of entry |
+| `TRADE_TARGET_PCT_STEPS` | `"3"` | Default target % |
+| `TRADE_TSL_PCT` | `0.5` | Default trailing SL % |
+| `TRADE_TSL_ID` | `trade-ema-5` | Default TSL indicator |
+| `TRADE_USE_BE` | `True` | Enable break-even move |
+| `TRADE_BUDGET` | `200000-inr` | Default capital |
+| `TRADE_STRIKE_SELECTION` | `ATM` | Default strike type |
+| `GLOBAL_WARMUP_CANDLES` | `250` | History bars to prime indicators |
+| `NIFTY_LOT_SIZE` | `65` | Shares per lot |
+| `NIFTY_STRIKE_STEP` | `50` | Strike interval |

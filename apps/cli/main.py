@@ -488,9 +488,7 @@ def live_trade(
     tsl_id: Annotated[
         str | None, typer.Option("--tsl-id", "-T", help="Indicator ID for Trailing SL (e.g. active-ema-5)")
     ] = settings.TRADE_TSL_ID,
-    record_papertrade: Annotated[
-        bool, typer.Option(help="Record detailed trade logs in 'papertrade' collection")
-    ] = True,
+    papertrade: Annotated[bool, typer.Option("--papertrade", is_flag=True, help="Enable papertrading mode using Mock APIs")] = False,
     debug: Annotated[bool, typer.Option(help="Enable Socket Debug Logging")] = False,
     log_active_indicator: Annotated[
         bool, typer.Option("--log-active-indicator/--no-log-active-indicator", help="Dump active instrument data to CSV on entry signal")
@@ -522,7 +520,7 @@ def live_trade(
             "instrument_type": "OPTIONS",
             "use_be": use_be,
             "tsl_id": tsl_id,
-            "record_papertrade_db": record_papertrade,
+            "papertrade": papertrade,
             "symbol": "NIFTY",
             "python_strategy_path": python_strategy_path,
         }

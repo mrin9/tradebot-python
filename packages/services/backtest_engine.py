@@ -373,9 +373,7 @@ class BacktestEngine:
         # bt_start_dt is already defined above
         prefix = self.strategy_config.get("strategyId", "BT")
         self.session_id = DateUtils.generate_session_id(prefix, custom_time=bt_start_dt)
-        self.event_service = TradeEventService(
-            self.session_id, record_papertrade=False
-        )
+        self.event_service = TradeEventService(self.session_id)
         # Tag mock orders with session ID
         if hasattr(self.fund_manager.order_manager, 'session_id'):
             self.fund_manager.order_manager.session_id = self.session_id

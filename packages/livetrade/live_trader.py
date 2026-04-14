@@ -55,9 +55,7 @@ class LiveTradeEngine:
         else:
             self.market_service = LiveMarketService(debug=debug)
         self.mock = mock
-        self.event_service = TradeEventService(
-            self.session_id, record_papertrade=position_config.get("record_papertrade", True)
-        )
+        self.event_service = TradeEventService(self.session_id)
 
         # 2. Setup active grid for FundManager
         self.active_grid_ids: set[int] = set()

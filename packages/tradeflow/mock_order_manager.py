@@ -21,9 +21,10 @@ class MockOrderManager(OrderManager):
     matching the get_order_history API response format.
     """
 
-    def __init__(self, client_id: str = "MOCK", exchange_segment: str = "NSEFO"):
+    def __init__(self, client_id: str = "MOCK", exchange_segment: str = "NSEFO", fetch_quote_fn=None):
         self.client_id = client_id
         self.exchange_segment = exchange_segment
+        self.fetch_quote_fn = fetch_quote_fn
         self.session_id = None
         self._collection = MongoRepository.get_collection(MOCK_API_COLLECTION)
         self._used_margin = 0.0
@@ -93,6 +94,19 @@ class MockOrderManager(OrderManager):
         app_order_id = self._generate_app_order_id()
         time_str = now.strftime("%d-%b-%Y %H:%M:%S")
         traded_price = price
+
+        # If a live quote fetcher is available (Papertrade), fire it to get the TRUE LTP
+        if self.fetch_quote_fn:
+            logger.info(f"[MOCK API] ⚡ Firing Live Quote for {symbol} to simulate real execution price...")
+            try:
+                # Need to determine the segment based on symbol type. For NIFTY Options it is usually 2 (NSEFO)
+                segment = 2 if self.exchange_segment == "NSEFO" else 1 
+                quote = self.fetch_quote_fn(segment, int(symbol))
+                if quote and "p" in quote:
+                    traded_price = quote["p"]
+                    logger.info(f"[MOCK API] ✅ Extracted Live LTP for Mock Execution: {traded_price}")
+            except Exception as e:
+                logger.warning(f"[MOCK API] ⚠️ Failed to fetch Live Quote for {symbol}, using fallback price {price}: {e}")
 
         # Log the API call
         logger.info(

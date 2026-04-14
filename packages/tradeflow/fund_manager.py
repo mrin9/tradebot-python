@@ -102,11 +102,23 @@ class FundManager:
             price_source=self.position_config["priceSource"],
             tsl_id=self.tsl_id,
         )
-        self.order_manager = PaperTradingOrderManager()
-        if settings.USE_MOCK_ORDER_MANAGER:
+        self.is_papertrade = self.position_config.get("papertrade", False)
+        
+        if self.is_backtest:
+            self.order_manager = PaperTradingOrderManager()
+            if settings.USE_MOCK_ORDER_MANAGER:
+                from packages.tradeflow.mock_order_manager import MockOrderManager
+                self.order_manager = MockOrderManager()
+                logger.info("📡 Using MockOrderManager (Backtest)")
+        elif self.is_papertrade:
             from packages.tradeflow.mock_order_manager import MockOrderManager
-            self.order_manager = MockOrderManager()
-            logger.info("📡 Using MockOrderManager (MongoDB-backed)")
+            self.order_manager = MockOrderManager(fetch_quote_fn=fetch_quote_fn)
+            logger.info("📡 Using MockOrderManager (Papertrade Mode)")
+        else:
+            from packages.tradeflow.xts_order_manager import XTSOrderManager
+            self.order_manager = XTSOrderManager()
+            logger.info("⚠️ Using XTSOrderManager (REAL MONEY MODE)")
+            
         self.position_manager.set_order_manager(self.order_manager)
 
         if self.fixed_lots:

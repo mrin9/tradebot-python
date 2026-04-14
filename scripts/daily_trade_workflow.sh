@@ -18,34 +18,46 @@ fi
 
 cd "$PROJECT_DIR"
 
+# Check for papertrade flag
+PAPERTRADE_ARG=""
+for arg in "$@"; do
+    if [ "$arg" == "--papertrade" ]; then
+        PAPERTRADE_ARG="--papertrade"
+        break
+    fi
+done
+
 case "$1" in
     start)
         echo "[$DATE_STR 09:00] Starting Morning Workflow..."
-        
+        if [ -n "$PAPERTRADE_ARG" ]; then
+            echo "Running in PAPERTRADE mode."
+        fi
+
         # 1. Update Master Instrument
         $PYTHON_CMD "$CLI_PATH" update-master
-        
+
         # 2. Sync Nifty and Options Candle
         $PYTHON_CMD "$CLI_PATH" sync-history --date-range "today"
-        
+
         # 3. Delete logs/app.log
         if [ -f "$LOG_FILE" ]; then
             echo "Removing old log file: $LOG_FILE"
             rm "$LOG_FILE"
         fi
-        
+
         # 4. Start Live trade
         echo "Starting Live Trade Engine..."
         # We use nohup to keep it running after the shell exits.
         # It auto-stops at 3:30 PM due to internal logic, but we also have a 'stop' command.
-        nohup $PYTHON_CMD "$CLI_PATH" live-trade > "$PROJECT_DIR/logs/process.log" 2>&1 &
+        nohup $PYTHON_CMD "$CLI_PATH" live-trade $PAPERTRADE_ARG > "$PROJECT_DIR/logs/process.log" 2>&1 &
         echo $! > "$PID_FILE"
         echo "Live Trade started with PID $(cat $PID_FILE)"
         ;;
-        
+
     stop)
         echo "[$DATE_STR 15:30] Starting Afternoon Workflow..."
-        
+
         # 1. Kill or stop the live trade process
         if [ -f "$PID_FILE" ]; then
             PID=$(cat "$PID_FILE")
@@ -56,7 +68,7 @@ case "$1" in
         else
             echo "PID file not found. Process might not be running or already stopped."
         fi
-        
+
         # 2. Rename the logs/app.log
         if [ -f "$LOG_FILE" ]; then
             ARCHIVE_LOG="$PROJECT_DIR/logs/$DATE_STR-trade.log"
@@ -65,18 +77,18 @@ case "$1" in
         else
             echo "app.log not found, nothing to archive."
         fi
-        
+
         # 3. Update Master Instrument
         $PYTHON_CMD "$CLI_PATH" update-master
-        
+
         # 4. Sync Nifty and Options Candle
         $PYTHON_CMD "$CLI_PATH" sync-history --date-range "today"
-        
+
         echo "Afternoon Workflow Complete."
         ;;
-        
+
     *)
-        echo "Usage: $0 {start|stop}"
+        echo "Usage: $0 {start|stop} [--papertrade]"
         exit 1
         ;;
 esac

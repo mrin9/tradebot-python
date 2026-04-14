@@ -243,7 +243,7 @@ class PositionManager:
         symbol = str(payload.symbol) if payload.symbol else self.symbol
         display_symbol = payload.display_symbol or symbol
         
-        # 4. Entry Start Time Guard
+        # 4. Entry Time Guards
         if timestamp.time() < datetime.strptime(settings.TRADE_START_TIME, "%H:%M:%S").time():
             return
 
@@ -274,6 +274,11 @@ class PositionManager:
             # 1b. Max Trades Per Day Guard
             if self.max_trades_per_day > 0 and self.cycle_count > self.max_trades_per_day:
                 logger.warning(f"🛑 Max trades/day ({self.max_trades_per_day}) reached. Skipping entry.")
+                return
+
+            # 1c. Last Entry Time Guard
+            if timestamp.time() >= datetime.strptime(settings.TRADE_LAST_ENTRY_TIME, "%H:%M:%S").time():
+                logger.warning(f"🛑 Late Day Block: Attempting to enter trade at {timestamp.time()} which is >= {settings.TRADE_LAST_ENTRY_TIME}. Skipping.")
                 return
 
             # 2. Extract specific trigger name if provided
@@ -424,6 +429,12 @@ class PositionManager:
             exit_time = DateUtils.market_timestamp_to_datetime(ts)
         else:
             exit_time = datetime.now(DateUtils.MARKET_TZ).replace(microsecond=0)
+
+        # 1. EOD Square Off Check
+        if exit_time.time() >= datetime.strptime(settings.TRADE_SQUARE_OFF_TIME, "%H:%M:%S").time():
+            logger.warning(f"⏰ EOD SQUARE OFF Triggered at {exit_time.time()}! Force closing position.")
+            self._close_position(current_price, exit_time, "EOD_SQUARE_OFF", nifty_price=self.symbol)
+            return
 
         pos.current_price = current_price
 

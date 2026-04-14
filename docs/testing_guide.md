@@ -187,30 +187,30 @@ Both modes:
 
 ```bash
 python -m tests.backtest.backtest_runner \
-  --mode db \
   --start 2026-03-19 \
-  --strategy-id triple-confirmation \
   --budget 200000-inr \
   --sl-pct 4.0 \
   --target-pct "3" \
   --tsl-pct 0.5 \
   --invest-mode compound \
-  --verbose
+  --verbose \
+  --mode db \
+  --strategy-id triple-confirmation
 ```
 
 ### 5.3 Example Socket‑Mode Command
 
 ```bash
 python -m tests.backtest.backtest_runner \
-  --mode socket \
   --start 2024-02-02 \
   --end 2024-02-02 \
-  --strategy-id triple-confirmation \
   --budget 200000-inr \
   --sl-pct 4.0 \
   --target-pct "3" \
   --tsl-pct 0.5 \
   --strike-selection ATM
+  --mode socket \
+  --strategy-id triple-confirmation
 ```
 
 If the socket simulator is not running, the runner can auto‑start it using `packages/simulator/socket_server.py`.

@@ -17,18 +17,14 @@ class TradeEventService:
     Handles formatting, logging, and DB persistence.
     """
 
-    def __init__(self, session_id: str, record_papertrade: bool = True):
+    def __init__(self, session_id: str):
         self.session_id = session_id
-        self.record_papertrade = record_papertrade
         self.persistence = TradePersistence()
         self.db = MongoRepository.get_db()
         self.active_signals: list[dict] = []
 
     def record_init(self, fund_manager: Any, mode: str = "live"):
         """Records the session initialization."""
-        if not self.record_papertrade:
-            return
-
         config = self.build_config_summary(fund_manager, mode=mode)
         event = {"type": "INIT", "msg": "Trading session initialized.", "config": config}
         self._persist_non_position_event(event)
@@ -52,9 +48,6 @@ class TradeEventService:
         """
         Records position-specific events (Entry, Target, Exit, SL).
         """
-        if not self.record_papertrade:
-            return
-
         nifty_price = fund_manager.latest_tick_prices.get(26000, 0.0)
         pos_manager = fund_manager.position_manager
         pos = pos_manager.current_position
@@ -163,9 +156,6 @@ class TradeEventService:
 
     def _persist_non_position_event(self, event_data: dict, fund_manager: Any | None = None):
         """Helper to persist generic events to papertrade collection."""
-        if not self.record_papertrade:
-            return
-
         event_data.update(
             {
                 "sessionId": self.session_id,
