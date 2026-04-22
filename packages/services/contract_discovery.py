@@ -19,6 +19,7 @@ class ContractDiscoveryService:
         self.db = db if db is not None else MongoRepository.get_db()
         self._cache: dict[tuple[str, str], list] = {}  # {(symbol, series): [instruments]}
         self._is_cache_loaded = False
+        self._last_jump_log_date = None
 
     def load_cache(
         self, symbol: str = "NIFTY", series: str = "OPTIDX", effective_date: datetime | None = None
@@ -83,7 +84,10 @@ class ContractDiscoveryService:
                 if current_dt.time() >= cutoff_time:
                     if len(expiries) > 1:
                         target_expiry = expiries[1]
-                        logger.info(f"⏭️ Expiry Jump Triggered! Time {current_dt.time()} >= {cutoff_time}. Switching to Next Week: {target_expiry}")
+                        current_date_str = str(current_dt.date())
+                        if self._last_jump_log_date != current_date_str:
+                            logger.info(f"⏭️ Expiry Jump Triggered! Time {current_dt.time()} >= {cutoff_time}. Switching to Next Week: {target_expiry}")
+                            self._last_jump_log_date = current_date_str
                     else:
                         logger.warning(f"⚠️ Expiry Jump Triggered but no next week contract found. Defaulting to {target_expiry}")
         except Exception as e:
