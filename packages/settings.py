@@ -74,7 +74,7 @@ class Settings(BaseSettings):
     # Trade Defaults (Percentage-based & General)
     TRADE_STOP_LOSS_PCT: float = 7.0
     TRADE_TARGET_PCT_STEPS: str = "4"
-    TRADE_TSL_PCT: float = 2
+    TRADE_TSL_PCT: float = 7
     TRADE_TSL_ID: str = "trade-ema-5"
     TRADE_USE_BE: bool = True
     TRADE_INSTRUMENT_TYPE: str = "OPTIONS"
