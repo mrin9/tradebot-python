@@ -63,13 +63,20 @@ class DataArchiverService:
         try:
             df = pl.DataFrame(data)
 
-            # E.g., data/archive/ticks/date=2026-04-22/
+            # E.g., ../data/ticks/date=2026-04-22/
             today_str = datetime.now().strftime("%Y-%m-%d")
-            base_dir = os.path.join("data", "archive", "ticks", f"date={today_str}")
+            
+            # Resolve the path to the parent of tradebot-python
+            # __file__ is packages/services/data_archiver.py
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            tradebot_python_dir = os.path.dirname(os.path.dirname(current_dir))
+            parent_dir = os.path.dirname(tradebot_python_dir)
+            
+            base_dir = os.path.join(parent_dir, "data", "ticks", f"date={today_str}")
             os.makedirs(base_dir, exist_ok=True)
 
-            # E.g., ticks_143000.parquet
-            time_str = datetime.now().strftime("%H%M%S")
+            # E.g., ticks_1442.parquet (HHMM)
+            time_str = datetime.now().strftime("%H%M")
             file_path = os.path.join(base_dir, f"ticks_{time_str}.parquet")
 
             df.write_parquet(file_path)
