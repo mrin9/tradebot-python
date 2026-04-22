@@ -89,6 +89,12 @@ class MasterDataCollector:
         # 30 days window logic
         cutoff_date = now + timedelta(days=30)
 
+        # Pre-scan for valid FNO stock names (FUTSTK without test symbols)
+        fno_stock_names = {
+            doc.get("name") for doc in raw_data
+            if doc.get("series") == "FUTSTK" and not doc.get("name", "").endswith("NSETEST")
+        }
+
         filtered = []
         skipped_expired = 0
         skipped_future = 0
@@ -100,26 +106,35 @@ class MasterDataCollector:
         now_str = now.strftime("%Y-%m-%dT%H:%M:%S")
         cutoff_str = cutoff_date.strftime("%Y-%m-%dT%H:%M:%S")
 
-        allowed_series = ["INDEX", "FUTIDX", "OPTIDX"]
+        allowed_series = ["INDEX", "FUTIDX", "OPTIDX", "FUTSTK", "EQ"]
 
         for doc in raw_data:
-            # Filter 1: Series check (Only allow INDEX, FUTIDX, OPTIDX)
-            # ALSO: Always preserve the NIFTY Index ID (26000)
             series = doc.get("series")
             inst_id = doc.get("exchangeInstrumentID")
-            if series not in allowed_series and inst_id != settings.NIFTY_INSTRUMENT_ID:
+            name = doc.get("name", "")
+
+            # Always preserve the NIFTY Index ID (26000)
+            if inst_id == settings.NIFTY_INSTRUMENT_ID:
+                filtered.append(doc)
                 continue
 
-            # Filter 2: Remove Instruments with Type 8 (Equity?) - legacy rule
-            if doc.get("instrumentTypeNum") == 8:
-                skipped_equity += 1
+            # Filter 1: Series check
+            if series not in allowed_series:
                 continue
 
-            # Filter 2: NSEFO Expiry Checks
+            # Filter 2: Equity & Stock Futures validity check
+            # Keep EQ and FUTSTK only if they correspond to valid FNO stocks
+            if series in ["EQ", "FUTSTK"]:
+                if name not in fno_stock_names:
+                    if series == "EQ" or doc.get("instrumentTypeNum") == 8:
+                        skipped_equity += 1
+                    continue
+
+            # Filter 3: NSEFO Expiry Checks
             if doc.get("exchangeSegment") == "NSEFO":
                 expiry = doc.get("contractExpiration")
                 if not expiry:
-                    # Keep if no expiry (e.g. continuous futures? usually have expiry though)
+                    # Keep if no expiry
                     filtered.append(doc)
                     continue
 
@@ -135,7 +150,7 @@ class MasterDataCollector:
             filtered.append(doc)
 
         logger.info(f"Filtered {len(raw_data)} -> {len(filtered)} instruments.")
-        logger.info(f"Skipped: Equity={skipped_equity}, Expired={skipped_expired}, Future={skipped_future}")
+        logger.info(f"Skipped: Equity/Non-FNO={skipped_equity}, Expired={skipped_expired}, Future={skipped_future}")
         return filtered
 
     def _update_mongo(self, data):
@@ -167,10 +182,16 @@ class MasterDataCollector:
                 logger.error(f"Error during bulk_write to MongoDB: {e}")
 
         # 5. Cleanup: Remove records that don't match our series criteria
-        allowed_series = ["INDEX", "FUTIDX", "OPTIDX"]
+        allowed_series = ["INDEX", "FUTIDX", "OPTIDX", "FUTSTK", "EQ"]
         logger.info(f"Cleaning up instrument_master: Removing records NOT in {allowed_series}")
         delete_res = coll.delete_many(
             {"series": {"$nin": allowed_series}, "exchangeInstrumentID": {"$ne": settings.NIFTY_INSTRUMENT_ID}}
         )
         if delete_res.deleted_count > 0:
             logger.info(f"Cleanup Complete. Removed {delete_res.deleted_count} irrelevant instruments.")
+
+        # 6. Cleanup: Remove expired or removed instruments (isOld = True)
+        logger.info("Cleaning up instrument_master: Removing removed/expired instruments (isOld=True)")
+        delete_old_res = coll.delete_many({"isOld": True})
+        if delete_old_res.deleted_count > 0:
+            logger.info(f"Cleanup Complete. Removed {delete_old_res.deleted_count} stale instruments.")

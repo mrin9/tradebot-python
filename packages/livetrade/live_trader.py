@@ -59,6 +59,7 @@ class LiveTradeEngine:
 
         # 2. Setup active grid for FundManager
         self.active_grid_ids: set[int] = set()
+        self.eq_instrument_ids: set[int] = set()
 
         # 3. Initialize FundManager with services
         self.fund_manager = FundManager(
@@ -71,6 +72,7 @@ class LiveTradeEngine:
             history_service=self.history_service,
             fetch_quote_fn=self._fetch_quote_api,
             active_grid_ids=self.active_grid_ids,
+            eq_instrument_ids=self.eq_instrument_ids,
         )
 
         # Hook FundManager events into TradeEventService
@@ -243,6 +245,16 @@ class LiveTradeEngine:
             active_pos = self.fund_manager.position_manager.current_position
             if active_pos:
                 instruments_to_sub.add(int(active_pos.symbol))
+
+            # FNO Equity Archival Subscription
+            if not self.mock and settings.ARCHIVE_FNO_EQUITIES:
+                logger.info("📡 Fetching FNO Equity IDs for archival...")
+                eq_ids = self.discovery_service.get_fno_equity_ids()
+                if eq_ids:
+                    self.eq_instrument_ids.update(eq_ids)
+                    self.fund_manager.eq_instrument_ids = self.eq_instrument_ids
+                    instruments_to_sub.update(eq_ids)
+                    logger.info(f"✅ Added {len(eq_ids)} FNO Equities to subscription list.")
 
             current_subs = self.market_service.subscribed_instruments
             to_sub = list(instruments_to_sub - current_subs)

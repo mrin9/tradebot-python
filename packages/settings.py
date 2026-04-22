@@ -91,6 +91,7 @@ class Settings(BaseSettings):
     TRADE_EXPIRY_JUMP_CUTOFF: str = "14:30:00"
     LOG_HEARTBEAT: bool = False
     LOG_ACTIVE_INDICATOR: bool = False
+    ARCHIVE_FNO_EQUITIES: bool = True
 
     # 4. Socket & Simulator Settings
     SOCKET_SIMULATOR_URL: str = "http://localhost:5050"

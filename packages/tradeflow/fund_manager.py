@@ -40,6 +40,7 @@ class FundManager:
         fetch_ohlc_fn: Callable | None = None,  # Legacy injection
         fetch_quote_fn: Callable | None = None,  # Legacy injection
         active_grid_ids: set[int] | None = None,
+        eq_instrument_ids: set[int] | None = None,
     ):
         # 1. Initialize Services
         self.config_service = config_service or TradeConfigService()
@@ -136,6 +137,7 @@ class FundManager:
         # Track active ATM instruments being monitored {category: instrument_id}
         self.active_instruments: dict[str, int | str] = {}
         self.monitored_instrument_ids = active_grid_ids or set()
+        self.eq_instrument_ids = eq_instrument_ids or set()
         
         # Initialize Resamplers per instrument_id
         self.resamplers: dict[int, CandleResampler] = {}
@@ -245,6 +247,25 @@ class FundManager:
         """
         inst_id = market_data.get("i", market_data.get("instrument_id"))
 
+        # --- FAST-PATH BYPASS FOR EQ INSTRUMENTS ---
+        # If the tick belongs to our explicitly tracked Equity (cash) instruments, 
+        # we bypass all heavy strategy logic (resamplers, indicators, DB lookups).
+        # We send these ticks straight to the background queue for Parquet storage.
+        # Archival ONLY happens during Live Trading to prevent polluting backtests.
+        if inst_id and int(inst_id) in self.eq_instrument_ids:
+            if not self.is_backtest:
+                self.archiver_service.enqueue({
+                    "i": inst_id,
+                    "o": market_data.get("o", market_data.get("open")),
+                    "h": market_data.get("h", market_data.get("high")),
+                    "l": market_data.get("l", market_data.get("low")),
+                    "c": market_data.get("c", market_data.get("close", market_data.get("p"))),
+                    "v": market_data.get("v", market_data.get("volume", market_data.get("q", 0))),
+                    "t": market_data.get("t", market_data.get("timestamp"))
+                })
+            return
+        # ---------------------------------------------
+
         # Update global market time if available
         ts = market_data.get("t", market_data.get("timestamp"))
         if ts is not None:
@@ -335,16 +356,21 @@ class FundManager:
         if resampler:
             resampler.add_candle(market_data)
 
-        # Background archiving of tick data
-        self.archiver_service.enqueue({
-            "i": market_data.get("instrument_id", market_data.get("i")),
-            "o": market_data.get("open", market_data.get("o")),
-            "h": market_data.get("high", market_data.get("h")),
-            "l": market_data.get("low", market_data.get("l")),
-            "c": market_data.get("close", market_data.get("c", market_data.get("p"))),
-            "v": market_data.get("volume", market_data.get("v", market_data.get("q", 0))),
-            "t": market_data.get("timestamp", market_data.get("t"))
-        })
+        # --- ARCHIVE OPTIONS & SPOT TICKS ---
+        # Ticks for active/monitored Options and NIFTY Spot reach here after successfully 
+        # flowing through all strategy and resampler logic above. We archive them 
+        # asynchronously to Parquet for historical analysis and model training.
+        # Archival ONLY happens during Live Trading to save memory and I/O during backtests.
+        if not self.is_backtest:
+            self.archiver_service.enqueue({
+                "i": market_data.get("instrument_id", market_data.get("i")),
+                "o": market_data.get("open", market_data.get("o")),
+                "h": market_data.get("high", market_data.get("h")),
+                "l": market_data.get("low", market_data.get("l")),
+                "c": market_data.get("close", market_data.get("c", market_data.get("p"))),
+                "v": market_data.get("volume", market_data.get("v", market_data.get("q", 0))),
+                "t": market_data.get("timestamp", market_data.get("t"))
+            })
 
     def _on_resampled_candle_closed(self, candle: dict[str, Any], category: InstrumentCategoryType, triggering_tick: dict[str, Any] | None = None) -> None:
         """

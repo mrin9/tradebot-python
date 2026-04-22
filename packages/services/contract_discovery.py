@@ -326,3 +326,29 @@ class ContractDiscoveryService:
             strike_count = settings.OPTIONS_STRIKE_COUNT
         contracts = self.derive_target_contracts(current_dt, strike_count=strike_count, expiry_count=1)
         return {int(c["exchangeInstrumentID"]) for c in contracts}
+
+    def get_fno_equity_ids(self) -> set[int]:
+        """
+        Dynamically fetches the exchangeInstrumentIDs for all NSECM (Equity) stocks 
+        that have corresponding FUTSTK contracts.
+        """
+        try:
+            # 1. Find all distinct names that have FUTSTK contracts
+            fno_names = self.db[settings.INSTRUMENT_MASTER_COLLECTION].distinct("name", {"series": "FUTSTK"})
+            if not fno_names:
+                logger.warning("No FUTSTK names found. Cannot determine FNO equities.")
+                return set()
+
+            # 2. Find the corresponding EQ instruments for those names
+            eq_docs = list(self.db[settings.INSTRUMENT_MASTER_COLLECTION].find({
+                "exchangeSegment": "NSECM",
+                "series": {"$in": ["EQ", "IN"]},
+                "name": {"$in": fno_names}
+            }, {"exchangeInstrumentID": 1}))
+
+            ids = {int(doc["exchangeInstrumentID"]) for doc in eq_docs if "exchangeInstrumentID" in doc}
+            logger.info(f"Dynamically resolved {len(ids)} FNO Equity IDs for archival.")
+            return ids
+        except Exception as e:
+            logger.error(f"Error fetching FNO Equity IDs: {e}")
+            return set()
