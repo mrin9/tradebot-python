@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     TRADE_SQUARE_OFF_TIME: str = "15:15:00"
     TRADE_EXPIRY_JUMP_CUTOFF: str = "14:30:00"
     LOG_HEARTBEAT: bool = False
-    LOG_ACTIVE_INDICATOR: bool = True
+    LOG_ACTIVE_INDICATOR: bool = False
 
     # 4. Socket & Simulator Settings
     SOCKET_SIMULATOR_URL: str = "http://localhost:5050"

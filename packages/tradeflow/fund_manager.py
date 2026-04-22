@@ -8,6 +8,7 @@ from packages.settings import settings
 from packages.services.market_history import MarketHistoryService
 from packages.services.trade_config_service import TradeConfigService
 from packages.tradeflow.candle_resampler import CandleResampler
+from packages.services.data_archiver import DataArchiverService
 from packages.tradeflow.indicator_calculator import IndicatorCalculator
 from packages.tradeflow.order_manager import PaperTradingOrderManager
 from packages.tradeflow.position_manager import PositionManager
@@ -147,6 +148,7 @@ class FundManager:
 
         self.is_warming_up = False
         self.latest_market_time: float | None = None
+        self.archiver_service = DataArchiverService(flush_interval_seconds=self.global_timeframe)
 
         # Position Events also invalidate the mapping cache (due to direction-based Active/Inverse mapping)
         def invalidate_mapping_cache(event):
@@ -332,6 +334,17 @@ class FundManager:
         resampler = self.resamplers.get(int(inst_id))
         if resampler:
             resampler.add_candle(market_data)
+
+        # Background archiving of tick data
+        self.archiver_service.enqueue({
+            "i": market_data.get("instrument_id", market_data.get("i")),
+            "o": market_data.get("open", market_data.get("o")),
+            "h": market_data.get("high", market_data.get("h")),
+            "l": market_data.get("low", market_data.get("l")),
+            "c": market_data.get("close", market_data.get("c", market_data.get("p"))),
+            "v": market_data.get("volume", market_data.get("v", market_data.get("q", 0))),
+            "t": market_data.get("timestamp", market_data.get("t"))
+        })
 
     def _on_resampled_candle_closed(self, candle: dict[str, Any], category: InstrumentCategoryType, triggering_tick: dict[str, Any] | None = None) -> None:
         """

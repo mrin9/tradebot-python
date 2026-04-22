@@ -23,7 +23,8 @@ dependencies = [
     "joblib",
     "numpy",
     "httpx",
-    "python-dotenv"
+    "python-dotenv",
+    "pyarrow"
 ]
 
 [project.optional-dependencies]
