@@ -124,21 +124,22 @@ class LiveMarketService:
             nse_fo = [i for i in instrument_ids if i not in self.nsecm_instruments]
 
             func_name = "send_subscription" if subscribe else "send_unsubscription"
+            chunk_size = 50  # XTS often has limits on the number of instruments per call
+
+            def chunk_and_call(segment: int, ids: list[int]):
+                for i in range(0, len(ids), chunk_size):
+                    batch = ids[i : i + chunk_size]
+                    XtsSessionManager.call_api(
+                        "market",
+                        func_name,
+                        instruments=[{"exchangeSegment": segment, "exchangeInstrumentID": item} for item in batch],
+                        xts_message_code=1501,
+                    )
 
             if nse_eq:
-                XtsSessionManager.call_api(
-                    "market",
-                    func_name,
-                    instruments=[{"exchangeSegment": 1, "exchangeInstrumentID": i} for i in nse_eq],
-                    xts_message_code=1501,
-                )
+                chunk_and_call(1, nse_eq)
             if nse_fo:
-                XtsSessionManager.call_api(
-                    "market",
-                    func_name,
-                    instruments=[{"exchangeSegment": 2, "exchangeInstrumentID": i} for i in nse_fo],
-                    xts_message_code=1501,
-                )
+                chunk_and_call(2, nse_fo)
             return True
         except Exception as e:
             action = "Subscription" if subscribe else "Unsubscription"
