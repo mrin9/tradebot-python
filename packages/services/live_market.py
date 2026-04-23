@@ -129,12 +129,14 @@ class LiveMarketService:
             def chunk_and_call(segment: int, ids: list[int]):
                 for i in range(0, len(ids), chunk_size):
                     batch = ids[i : i + chunk_size]
-                    XtsSessionManager.call_api(
+                    payload = [{"exchangeSegment": segment, "exchangeInstrumentID": item} for item in batch]
+                    response = XtsSessionManager.call_api(
                         "market",
                         func_name,
-                        instruments=[{"exchangeSegment": segment, "exchangeInstrumentID": item} for item in batch],
+                        instruments=payload,
                         xts_message_code=1501,
                     )
+                    logger.info(f"📡 Batch {func_name} (Seg {segment}, Size {len(batch)}): {response}")
 
             if nse_eq:
                 chunk_and_call(1, nse_eq)
