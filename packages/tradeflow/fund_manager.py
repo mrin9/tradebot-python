@@ -271,6 +271,10 @@ class FundManager:
             return
         # ---------------------------------------------
 
+        # Debug: Check if Nifty ticks are arriving
+        if int(inst_id) == 26000:
+            logger.debug(f"DEBUG: Received Nifty Tick. p={market_data.get('p')}, t={market_data.get('t')}")
+
         # Update global market time if available
         ts = market_data.get("t", market_data.get("timestamp"))
         if ts is not None:

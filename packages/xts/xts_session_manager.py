@@ -61,13 +61,18 @@ class XtsSessionManager:
         try:
             with open(cls.SESSION_FILE) as f:
                 data = json.load(f)
-
-            if session_type in data:
-                sess = data[session_type]
-                # Check for freshness (23h to be safe as XTS tokens expire at midnight or after 24h)
-                created_at = datetime.fromisoformat(sess["createdAt"])
-                if datetime.now(DateUtils.MARKET_TZ) - created_at < timedelta(hours=23):
-                    return sess
+                if session_type in data:
+                    sess = data[session_type]
+                    # Check for freshness (23h to be safe as XTS tokens expire at midnight or after 24h)
+                    created_at = datetime.fromisoformat(sess["createdAt"])
+                    
+                    # Ensure comparison is between two aware datetimes
+                    now = datetime.now(DateUtils.MARKET_TZ)
+                    if created_at.tzinfo is None:
+                        created_at = created_at.replace(tzinfo=DateUtils.MARKET_TZ)
+                    
+                    if now - created_at < timedelta(hours=23):
+                        return sess
 
         except Exception as e:
             logger.warning(f"Failed to load {session_type} session from file: {e}")
