@@ -157,6 +157,11 @@ class FundManager:
             self._needs_mapping_update = True
 
         self.position_manager.on_trade_event = invalidate_mapping_cache
+        
+        # Local cache for instrument categories to avoid redundant DB/discovery lookups
+        self._category_cache: dict[int, InstrumentCategoryType] = {26000: InstrumentCategoryType.SPOT}
+        if getattr(self, "spot_instrument_id", None):
+            self._category_cache[int(self.spot_instrument_id)] = InstrumentCategoryType.SPOT
 
     def _ensure_resampler(self, instrument_id: int, category: InstrumentCategoryType) -> None:
         """Ensures a resampler exists for the given instrument ID."""
@@ -275,7 +280,11 @@ class FundManager:
         # In Backtest mode, we use the configured price source (Open or Close)
         # In Live/Socket mode (ticks), we use 'p' (LTP)
         is_candle = any(k in market_data for k in ["c", "close", "o", "open"])
-        is_spot = (inst_id == 26000) or getattr(self, "spot_instrument_id", 26000) == inst_id
+        
+        # Type-safe instrument ID check
+        numeric_id = int(inst_id) if inst_id else 0
+        spot_id = getattr(self, "spot_instrument_id", 26000)
+        is_spot = (numeric_id == spot_id)
 
         if self.is_backtest and is_candle:
             if self.price_source == "open":
@@ -320,39 +329,38 @@ class FundManager:
                     self.position_manager.update_tick(market_data, nifty_price=nifty_price, indicators=mapped)
 
         # 3. Route to Resamplers based on Category
-        category = None
+        category = self._category_cache.get(numeric_id)
         
-        if is_spot:
-            category = InstrumentCategoryType.SPOT
-
         if not category:
             # Check if it's one of the primary monitored instruments (Spot, current ATM CE/PE)
             for cat, active_id in self.active_instruments.items():
-                if active_id == int(inst_id):
-                    category = cat
+                if active_id == numeric_id:
+                    category = InstrumentCategoryType(cat)
                     break
 
         # If not primary but currently being traded, it's still CE or PE
         if not category and self.position_manager.current_position:
-            if str(inst_id) == self.position_manager.current_position.symbol:
+            if str(numeric_id) == self.position_manager.current_position.symbol:
                 # It's a traded instrument that drifted. We still need to resample it!
                 # We can heuristic the category based on intent (LONG=CE, SHORT=PE for options)
                 if self.trade_instrument_type == "OPTIONS":
-                    category = "CE" if self.position_manager.current_position.intent == MarketIntentType.LONG else "PE"
+                    category = InstrumentCategoryType.CE if self.position_manager.current_position.intent == MarketIntentType.LONG else InstrumentCategoryType.PE
                 else:
-                    category = "SPOT"  # Fallback for futures/cash
+                    category = InstrumentCategoryType.SPOT  # Fallback for futures/cash
 
         if not category:
-            if (self.is_backtest and self.monitored_instrument_ids and int(inst_id) in self.monitored_instrument_ids) or (not self.is_backtest):
-                # Resolve actual option type from discovery cache instead of guessing
-                category = self.discovery_service.get_option_type(int(inst_id))
+            if (self.is_backtest and self.monitored_instrument_ids and numeric_id in self.monitored_instrument_ids) or (not self.is_backtest):
+                # Resolve actual option type from discovery cache and cache it locally
+                cat_str = self.discovery_service.get_option_type(numeric_id)
+                category = InstrumentCategoryType(cat_str)
+                self._category_cache[numeric_id] = category
             else:
                 return  # Data for instrument not actively monitored
 
         # Ensure resampler exists (especially for drifted/traded instruments)
-        self._ensure_resampler(int(inst_id), InstrumentCategoryType(category))
+        self._ensure_resampler(numeric_id, category)
 
-        resampler = self.resamplers.get(int(inst_id))
+        resampler = self.resamplers.get(numeric_id)
         if resampler:
             resampler.add_candle(market_data)
 

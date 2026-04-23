@@ -91,9 +91,14 @@ class LiveMarketService:
         if not new_ids:
             return
 
-        if self._send_subscription_batch(new_ids, subscribe=True):
-            self.subscribed_instruments.update(new_ids)
-            logger.info(f"+ Subscribed to {len(new_ids)} instruments.")
+        # Always update tracking list
+        self.subscribed_instruments.update(new_ids)
+
+        if self.soc.sid.connected:
+            if self._send_subscription_batch(new_ids, subscribe=True):
+                logger.info(f"+ Subscribed to {len(new_ids)} instruments.")
+        else:
+            logger.info(f"⏳ Tracked {len(new_ids)} instruments for subscription (will sync on socket connection).")
 
     def unsubscribe(self, instrument_ids: list[int]) -> None:
         """Unsubscribes from a list of instruments."""
@@ -103,9 +108,14 @@ class LiveMarketService:
         if not ids_to_unsub:
             return
 
-        if self._send_subscription_batch(ids_to_unsub, subscribe=False):
-            self.subscribed_instruments.difference_update(ids_to_unsub)
-            logger.info(f"- Unsubscribed from {len(ids_to_unsub)} instruments.")
+        # Always remove from tracking list
+        self.subscribed_instruments.difference_update(ids_to_unsub)
+
+        if self.soc.sid.connected:
+            if self._send_subscription_batch(ids_to_unsub, subscribe=False):
+                logger.info(f"- Unsubscribed from {len(ids_to_unsub)} instruments.")
+        else:
+            logger.info(f"⏳ Removed {len(ids_to_unsub)} instruments from tracking.")
 
     def _send_subscription_batch(self, instrument_ids: list[int], subscribe: bool = True) -> bool:
         """Helper to group instruments by segment and send (un)subscription command."""

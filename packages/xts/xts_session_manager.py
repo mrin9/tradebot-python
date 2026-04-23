@@ -8,6 +8,7 @@ from packages.settings import settings
 from packages.utils.log_utils import setup_logger
 from packages.xts.MarketDataSocketClient import MDSocket_io
 from packages.xts.xts_api import XtsApi
+from packages.utils.date_utils import DateUtils
 
 # Suppress InsecureRequestWarning caused by disabling SSL verification
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
