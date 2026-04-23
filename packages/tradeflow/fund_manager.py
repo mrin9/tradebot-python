@@ -272,8 +272,8 @@ class FundManager:
         # ---------------------------------------------
 
         # Debug: Check if Nifty ticks are arriving
-        if int(inst_id) == 26000:
-            logger.debug(f"DEBUG: Received Nifty Tick. p={market_data.get('p')}, t={market_data.get('t')}")
+        if numeric_id == 26000:
+            logger.info(f"📍 [DIAGNOSTIC] Nifty Tick: p={price} at {datetime.now().strftime('%H:%M:%S')}")
 
         # Update global market time if available
         ts = market_data.get("t", market_data.get("timestamp"))
@@ -396,6 +396,9 @@ class FundManager:
         # Update indicators (Python strategy receives them in on_resampled_candle_closed)
         inst_id = candle.get("instrument_id", candle.get("i"))
         self.indicator_calculator.add_candle(candle, instrument_category=category, instrument_id=inst_id)
+        
+        # Diagnostic: Log every candle close to see if resamplers are working
+        logger.info(f"📊 [DIAGNOSTIC] {category.value} Candle Closed for {inst_id}")
 
         # Invalidate mapping cache as raw indicator values just changed
         self._needs_mapping_update = True
