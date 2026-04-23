@@ -22,11 +22,12 @@ class DataArchiverService:
         self.tick_queue = queue.Queue()
         self.flush_interval_seconds = flush_interval_seconds
         self.is_running = True
+        self._flush_requested = False
 
         # Start daemon thread immediately
         self._thread = threading.Thread(target=self._archiver_loop, daemon=True)
         self._thread.start()
-        logger.info(f"💾 Data Archiver started. Flush interval: {flush_interval_seconds}s")
+        logger.info(f"💾 Data Archiver started. Flush interval: {flush_interval_seconds}s (Aligned with Heartbeat)")
 
     def enqueue(self, tick_data: dict[str, Any]) -> None:
         """
@@ -34,6 +35,10 @@ class DataArchiverService:
         This is an O(1) non-blocking operation.
         """
         self.tick_queue.put(tick_data)
+
+    def trigger_flush(self) -> None:
+        """Manually signals the archiver to flush the current buffer to disk."""
+        self._flush_requested = True
 
     def _archiver_loop(self) -> None:
         buffer = []
@@ -50,13 +55,21 @@ class DataArchiverService:
                 logger.error(f"Error in data archiver queue loop: {e}", exc_info=True)
 
             current_time = time.time()
-            if current_time - last_flush_time >= self.flush_interval_seconds:
+            time_since_last = current_time - last_flush_time
+            
+            # Flush if interval reached OR if manually requested
+            if self._flush_requested or time_since_last >= self.flush_interval_seconds:
                 if buffer:
-                    # Flush a copy of the buffer and clear it instantly
+                    # Reset request flag and flush
+                    self._flush_requested = False
+                    
                     data_to_flush = buffer.copy()
                     buffer.clear()
                     self._flush_to_parquet(data_to_flush)
-                last_flush_time = current_time
+                    last_flush_time = current_time
+                else:
+                    # If empty, just reset the request to avoid busy-waiting
+                    self._flush_requested = False
 
     def _flush_to_parquet(self, data: list[dict[str, Any]]) -> None:
         """Converts buffer to Polars DF and writes out chunk."""
@@ -75,8 +88,8 @@ class DataArchiverService:
             base_dir = os.path.join(parent_dir, "data", "ticks", f"date={today_str}")
             os.makedirs(base_dir, exist_ok=True)
 
-            # E.g., ticks_1442.parquet (HHMM)
-            time_str = datetime.now().strftime("%H%M")
+            # E.g., ticks_1442_01.parquet (HHMM_SS)
+            time_str = datetime.now().strftime("%H%M_%S")
             file_path = os.path.join(base_dir, f"ticks_{time_str}.parquet")
 
             df.write_parquet(file_path)

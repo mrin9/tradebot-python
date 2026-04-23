@@ -186,7 +186,11 @@ class LiveTradeEngine:
 
             # Warm up Options Grid
             if self.strategy_config.get("instrument_type", "OPTIONS") != "CASH":
-                for opt_id in self.active_grid_ids:
+                total_opts = len(self.active_grid_ids)
+                for idx, opt_id in enumerate(self.active_grid_ids):
+                    if idx % 10 == 0 or idx == total_opts - 1:
+                        logger.info(f"⏳ Warmup Progress: {idx+1}/{total_opts} options processed...")
+                    
                     opt_cat = self.fund_manager.discovery_service.get_option_type(opt_id)
                     # Initialize resamplers
                     self.fund_manager._ensure_resampler(opt_id, InstrumentCategoryType(opt_cat))

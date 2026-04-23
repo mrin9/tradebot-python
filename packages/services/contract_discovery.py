@@ -262,8 +262,18 @@ class ContractDiscoveryService:
         history_service = MarketHistoryService(self.db)
         spot_price = history_service.get_last_nifty_price(current_dt) or 0
 
+        # FALLBACK: If no price for today (e.g. morning sync), look back up to 3 days (for weekends)
         if spot_price <= 0:
-            logger.warning(f"No NIFTY spot price found for {current_dt}. Cannot derive contracts.")
+            logger.info(f"No NIFTY spot price found for {current_dt.date()}. Falling back to previous session price...")
+            for i in range(1, 4):
+                prev_dt = current_dt - timedelta(days=i)
+                spot_price = history_service.get_last_nifty_price(prev_dt) or 0
+                if spot_price > 0:
+                    logger.info(f"Found fallback price {spot_price} from {prev_dt.date()}")
+                    break
+
+        if spot_price <= 0:
+            logger.warning(f"No NIFTY spot price found for {current_dt} or previous 3 days. Cannot derive contracts.")
             return []
 
         # 2. Derive Strikes

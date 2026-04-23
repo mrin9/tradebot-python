@@ -101,6 +101,8 @@ class Settings(BaseSettings):
     XTS_SOURCE: str = "WEBAPI"
     XTS_DISABLE_SSL: bool = True
     XTS_BROADCAST_MODE: Literal["Full", "Partial"] = "Full"
+    XTS_SUBSCRIPTION_BATCH_SIZE: int = 50
+    XTS_SUBSCRIPTION_DELAY: float = 0.2
 
     # XTS Time Offset: API returns timestamps shifted by +5.5h (treats IST as UTC)
     XTS_TIME_OFFSET: int = 19800

@@ -124,7 +124,7 @@ class LiveMarketService:
             nse_fo = [i for i in instrument_ids if i not in self.nsecm_instruments]
 
             func_name = "send_subscription" if subscribe else "send_unsubscription"
-            chunk_size = 50  # XTS often has limits on the number of instruments per call
+            chunk_size = settings.XTS_SUBSCRIPTION_BATCH_SIZE
 
             def chunk_and_call(segment: int, ids: list[int]):
                 for i in range(0, len(ids), chunk_size):
@@ -137,6 +137,11 @@ class LiveMarketService:
                         xts_message_code=1501,
                     )
                     logger.info(f"📡 Batch {func_name} (Seg {segment}, Size {len(batch)}): {response}")
+                    
+                    # Add a small delay between batches to avoid overwhelming the server
+                    if i + chunk_size < len(ids):
+                        import time
+                        time.sleep(settings.XTS_SUBSCRIPTION_DELAY)
 
             if nse_eq:
                 chunk_and_call(1, nse_eq)

@@ -258,7 +258,7 @@ class FundManager:
         # We send these ticks straight to the background queue for Parquet storage.
         # Archival ONLY happens during Live Trading to prevent polluting backtests.
         if inst_id and int(inst_id) in self.eq_instrument_ids:
-            if not self.is_backtest:
+            if not self.is_backtest and not self.is_warming_up:
                 self.archiver_service.enqueue({
                     "i": inst_id,
                     "o": market_data.get("o", market_data.get("open")),
@@ -284,10 +284,6 @@ class FundManager:
                 price = market_data.get("c", market_data.get("close"))
         else:
             price = market_data.get("c", market_data.get("close", market_data.get("p")))
-
-        # Debug: Check if Nifty ticks are arriving
-        if numeric_id == 26000:
-            logger.info(f"📍 [DIAGNOSTIC] Nifty Tick: p={price} at {datetime.now().strftime('%H:%M:%S')}")
 
         # Update global market time if available
         ts = market_data.get("t", market_data.get("timestamp"))
@@ -373,7 +369,7 @@ class FundManager:
         # flowing through all strategy and resampler logic above. We archive them 
         # asynchronously to Parquet for historical analysis and model training.
         # Archival ONLY happens during Live Trading to save memory and I/O during backtests.
-        if not self.is_backtest:
+        if not self.is_backtest and not self.is_warming_up:
             self.archiver_service.enqueue({
                 "i": market_data.get("instrument_id", market_data.get("i")),
                 "o": market_data.get("open", market_data.get("o")),
@@ -397,9 +393,6 @@ class FundManager:
         inst_id = candle.get("instrument_id", candle.get("i"))
         self.indicator_calculator.add_candle(candle, instrument_category=category, instrument_id=inst_id)
         
-        # Diagnostic: Log every candle close to see if resamplers are working
-        logger.info(f"📊 [DIAGNOSTIC] {category.value} Candle Closed for {inst_id}")
-
         # Invalidate mapping cache as raw indicator values just changed
         self._needs_mapping_update = True
 
@@ -433,6 +426,10 @@ class FundManager:
                     inverse_desc=self.active_instruments.get(f"{inverse_cat}_DESC", "N/A"),
                 )
             )
+
+        # Trigger data archival flush synchronously with the heartbeat/candle-close
+        if not self.is_warming_up and category == InstrumentCategoryType.SPOT:
+            self.archiver_service.trigger_flush()
 
         # ONLY execute strategy decision synchronously when the SPOT candle acts as the anchor
         # ONLY execution and synchronization happens when the SPOT candle acts as the anchor
