@@ -271,6 +271,20 @@ class FundManager:
             return
         # ---------------------------------------------
 
+        # Type-safe instrument ID check
+        numeric_id = int(inst_id) if inst_id else 0
+
+        # In Backtest mode, we use the configured price source (Open or Close)
+        # In Live/Socket mode (ticks), we use 'p' (LTP)
+        is_candle = any(k in market_data for k in ["c", "close", "o", "open"])
+        if self.is_backtest and is_candle:
+            if self.price_source == "open":
+                price = market_data.get("o", market_data.get("open"))
+            else:
+                price = market_data.get("c", market_data.get("close"))
+        else:
+            price = market_data.get("c", market_data.get("close", market_data.get("p")))
+
         # Debug: Check if Nifty ticks are arriving
         if numeric_id == 26000:
             logger.info(f"📍 [DIAGNOSTIC] Nifty Tick: p={price} at {datetime.now().strftime('%H:%M:%S')}")
@@ -281,22 +295,8 @@ class FundManager:
             if self.latest_market_time is None or ts > self.latest_market_time:
                 self.latest_market_time = ts
 
-        # In Backtest mode, we use the configured price source (Open or Close)
-        # In Live/Socket mode (ticks), we use 'p' (LTP)
-        is_candle = any(k in market_data for k in ["c", "close", "o", "open"])
-        
-        # Type-safe instrument ID check
-        numeric_id = int(inst_id) if inst_id else 0
         spot_id = getattr(self, "spot_instrument_id", 26000)
         is_spot = (numeric_id == spot_id)
-
-        if self.is_backtest and is_candle:
-            if self.price_source == "open":
-                price = market_data.get("o", market_data.get("open"))
-            else:
-                price = market_data.get("c", market_data.get("close"))
-        else:
-            price = market_data.get("c", market_data.get("close", market_data.get("p")))
 
         if price is None or price <= 0:
             return
