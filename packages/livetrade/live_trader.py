@@ -253,6 +253,8 @@ class LiveTradeEngine:
                 if eq_ids:
                     self.eq_instrument_ids.update(eq_ids)
                     self.fund_manager.eq_instrument_ids = self.eq_instrument_ids
+                    if hasattr(self.market_service, "nsecm_instruments"):
+                        self.market_service.nsecm_instruments.update(eq_ids)
                     instruments_to_sub.update(eq_ids)
                     logger.info(f"✅ Added {len(eq_ids)} FNO Equities to subscription list.")
 

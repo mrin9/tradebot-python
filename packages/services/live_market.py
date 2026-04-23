@@ -26,6 +26,7 @@ class LiveMarketService:
         self.on_tick_callback: Callable[[dict], None] | None = None
 
         self.subscribed_instruments: set[int] = set()
+        self.nsecm_instruments: set[int] = {settings.NIFTY_INSTRUMENT_ID}
         self.is_running = False
         self.last_tick_time = time.time()
         self._is_connecting = False
@@ -109,8 +110,8 @@ class LiveMarketService:
     def _send_subscription_batch(self, instrument_ids: list[int], subscribe: bool = True) -> bool:
         """Helper to group instruments by segment and send (un)subscription command."""
         try:
-            nse_eq = [i for i in instrument_ids if i == settings.NIFTY_INSTRUMENT_ID]
-            nse_fo = [i for i in instrument_ids if i != settings.NIFTY_INSTRUMENT_ID]
+            nse_eq = [i for i in instrument_ids if i in self.nsecm_instruments]
+            nse_fo = [i for i in instrument_ids if i not in self.nsecm_instruments]
 
             func_name = "send_subscription" if subscribe else "send_unsubscription"
 
@@ -182,8 +183,8 @@ class LiveMarketService:
             
             def do_resubscribe():
                 # Re-subscribe all on reconnect safely in background
-                nse_eq = [i for i in self.subscribed_instruments if i == settings.NIFTY_INSTRUMENT_ID]
-                nse_fo = [i for i in self.subscribed_instruments if i != settings.NIFTY_INSTRUMENT_ID]
+                nse_eq = [i for i in self.subscribed_instruments if i in self.nsecm_instruments]
+                nse_fo = [i for i in self.subscribed_instruments if i not in self.nsecm_instruments]
 
                 if nse_eq:
                     XtsSessionManager.call_api(
