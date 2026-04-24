@@ -252,13 +252,6 @@ class FundManager:
         """
         inst_id = market_data.get("i", market_data.get("instrument_id"))
         
-        # VPS DIAGNOSTIC: Pulse log for Nifty Spot (every 100 ticks)
-        if str(inst_id) == "26000":
-             if not hasattr(self, "_diag_tick_count"): self._diag_tick_count = 0
-             self._diag_tick_count += 1
-             if self._diag_tick_count % 100 == 0:
-                 logger.info(f"💓 [DIAG] Spot Pulse: Received 100 ticks. Latest P={market_data.get('p')}")
-        
         # --- FAST-PATH BYPASS FOR EQ INSTRUMENTS ---
         # If the tick belongs to our explicitly tracked Equity (cash) instruments, 
         # we bypass all heavy strategy logic (resamplers, indicators, DB lookups).
@@ -320,7 +313,7 @@ class FundManager:
             if str(inst_id) == self.position_manager.current_position.symbol:
                 nifty_price = self.latest_tick_prices.get(26000)
 
-                mapped = self._get_mapped_indicators()
+                mapped = self._get_mapped_indicators(trigger_category=category)
                 # In Backtest Mode, if we receive a 1-minute Candle, we explode it into
                 # 4 virtual ticks (O, H, L, C) to match Socket/Live granularity.
                 if self.is_backtest and is_candle:
@@ -397,10 +390,6 @@ class FundManager:
         """
         Callback triggered when a specific Category Resampler finalizes a candle.
         """
-        inst_id = candle.get("instrument_id", candle.get("i"))
-        ts_val = candle.get("t", candle.get("timestamp"))
-        logger.info(f"🔔 [DIAG] Candle closed for {category} ({inst_id}) @ {ts_val}")
-        
         ts = candle.get("t", candle.get("timestamp"))
         if ts is None:
             return
@@ -416,36 +405,7 @@ class FundManager:
 
         # Refresh the flat state for logging and heartbeats after sync
         # We pull the fully mapped (active/inverse/trade) indicators so logs match strategy view
-        self.latest_indicators_state = self._get_mapped_indicators()
-
-        if self.log_heartbeat and category == InstrumentCategoryType.SPOT:
-            if self.is_warming_up:
-                # Silent during warmup as expected
-                return
-
-            # Format candle start and end times for clarity
-            if ts:
-                start_str = DateUtils.market_timestamp_to_datetime(ts).strftime("%H:%M:%S")
-                end_str = DateUtils.market_timestamp_to_datetime(ts + self.global_timeframe).strftime("%H:%M:%S")
-                time_display = f"{start_str} - {end_str}"
-            else:
-                time_display = "N/A"
-
-            # Determine descriptions for the heartbeat log
-            pos = self.position_manager.current_position
-            is_long = pos.intent == MarketIntentType.LONG if pos else True
-            active_cat = "CE" if is_long else "PE"
-            inverse_cat = "PE" if is_long else "CE"
-
-            logger.info(
-                TradeFormatter.format_heartbeat(
-                    time_display=time_display,
-                    indicators=self.latest_indicators_state,
-                    trade_desc=pos.display_symbol if pos else "None",
-                    active_desc=self.active_instruments.get(f"{active_cat}_DESC", "N/A"),
-                    inverse_desc=self.active_instruments.get(f"{inverse_cat}_DESC", "N/A"),
-                )
-            )
+        self.latest_indicators_state = self._get_mapped_indicators(trigger_category=category)
 
         # Trigger data archival flush synchronously with the heartbeat/candle-close
         if not self.is_warming_up and category == InstrumentCategoryType.SPOT:
@@ -461,7 +421,7 @@ class FundManager:
                 and str(inst_id) == self.position_manager.current_position.symbol
             ):
                 nifty_price = self.latest_tick_prices.get(26000)
-                mapped = self._get_mapped_indicators()
+                mapped = self._get_mapped_indicators(trigger_category=category)
                 
                 # Use triggering tick timestamp for exact timing
                 ts_to_use = triggering_tick.get("t", ts) if triggering_tick else ts
@@ -499,7 +459,59 @@ class FundManager:
                 self.active_instruments["PE_DESC"] = pe_desc
 
         # Refresh indicators for strategy evaluation
-        self.latest_indicators_state = self._get_mapped_indicators()
+        self.latest_indicators_state = self._get_mapped_indicators(trigger_category=category)
+
+        if self.log_heartbeat and category == InstrumentCategoryType.SPOT:
+            if not self.is_warming_up:
+                # Format candle start and end times for clarity
+                if ts:
+                    start_str = DateUtils.market_timestamp_to_datetime(ts).strftime("%H:%M:%S")
+                    end_str = DateUtils.market_timestamp_to_datetime(ts + self.global_timeframe).strftime("%H:%M:%S")
+                    time_display = f"{start_str} - {end_str}"
+                else:
+                    time_display = "N/A"
+
+                # Determine descriptions for the heartbeat log
+                pos = self.position_manager.current_position
+                is_long = pos.intent == MarketIntentType.LONG if pos else True
+                active_cat = "CE" if is_long else "PE"
+                inverse_cat = "PE" if is_long else "CE"
+
+                logger.info(
+                    TradeFormatter.format_heartbeat(
+                        time_display=time_display,
+                        indicators=self.latest_indicators_state,
+                        trade_desc=pos.display_symbol if pos else "None",
+                        active_desc=self.active_instruments.get(f"{active_cat}_DESC", "N/A"),
+                        inverse_desc=self.active_instruments.get(f"{inverse_cat}_DESC", "N/A"),
+                    )
+                )
+
+        if self.log_heartbeat and category == InstrumentCategoryType.SPOT:
+            if not self.is_warming_up:
+                # Format candle start and end times for clarity
+                if ts:
+                    start_str = DateUtils.market_timestamp_to_datetime(ts).strftime("%H:%M:%S")
+                    end_str = DateUtils.market_timestamp_to_datetime(ts + self.global_timeframe).strftime("%H:%M:%S")
+                    time_display = f"{start_str} - {end_str}"
+                else:
+                    time_display = "N/A"
+
+                # Determine descriptions for the heartbeat log
+                pos = self.position_manager.current_position
+                is_long = pos.intent == MarketIntentType.LONG if pos else True
+                active_cat = "CE" if is_long else "PE"
+                inverse_cat = "PE" if is_long else "CE"
+
+                logger.info(
+                    TradeFormatter.format_heartbeat(
+                        time_display=time_display,
+                        indicators=self.latest_indicators_state,
+                        trade_desc=pos.display_symbol if pos else "None",
+                        active_desc=self.active_instruments.get(f"{active_cat}_DESC", "N/A"),
+                        inverse_desc=self.active_instruments.get(f"{inverse_cat}_DESC", "N/A"),
+                    )
+                )
 
 
 
@@ -732,7 +744,7 @@ class FundManager:
         desc = f"End of Day Settlement at {eod_price:.2f}"
         self.position_manager._close_position(eod_price, eod_time, "EOD", reason_desc=desc, nifty_price=nifty_price)
 
-    def _get_mapped_indicators(self) -> dict[str, float]:
+    def _get_mapped_indicators(self, trigger_category: InstrumentCategoryType | None = None) -> dict[str, float]:
         """
         Builds a unified indicator dictionary for the strategy.
         Caches the result to avoid redundant mapping on every tick.
@@ -741,7 +753,7 @@ class FundManager:
         - inverse-*: Always current opposing ATM
         - trade-*: Pinned to the specifically traded instrument (if in position)
         """
-        if not self._needs_mapping_update:
+        if trigger_category is None and not self._needs_mapping_update:
             return self._cached_mapped_indicators
 
         mapped = {}
@@ -749,12 +761,14 @@ class FundManager:
         # 1. Pull Spot Indicators (Always present)
         mapped.update(self.indicator_calculator.extract_indicators(26000, InstrumentCategoryType.SPOT))
 
-        # 2. Pull Current Monitored ATM Contract Indicators
         ce_id = self.active_instruments.get("CE")
         pe_id = self.active_instruments.get("PE")
 
         ce_inds = self.indicator_calculator.extract_indicators(ce_id, InstrumentCategoryType.CE) if ce_id else {}
         pe_inds = self.indicator_calculator.extract_indicators(pe_id, InstrumentCategoryType.PE) if pe_id else {}
+
+        if not self.is_warming_up and trigger_category == InstrumentCategoryType.SPOT:
+             logger.info(f"🔍 [DIAG] Mapping: CE_ID={ce_id} ({len(ce_inds)} inds), PE_ID={pe_id} ({len(pe_inds)} inds)")
 
         mapped.update(ce_inds)
         mapped.update(pe_inds)
