@@ -257,7 +257,8 @@ class FundManager:
         # we bypass all heavy strategy logic (resamplers, indicators, DB lookups).
         # We send these ticks straight to the background queue for Parquet storage.
         # Archival ONLY happens during Live Trading to prevent polluting backtests.
-        if inst_id and int(inst_id) in self.eq_instrument_ids:
+        # Ensure 26000 (Spot) NEVER hits the bypass even if it's in the equity set
+        if inst_id and int(inst_id) in self.eq_instrument_ids and int(inst_id) != 26000:
             if not self.is_backtest and not self.is_warming_up:
                 self.archiver_service.enqueue({
                     "i": inst_id,
@@ -363,6 +364,11 @@ class FundManager:
         resampler = self.resamplers.get(numeric_id)
         if resampler:
             resampler.add_candle(market_data)
+        elif numeric_id == 26000:
+            logger.warning(f"⚠️ Received SPOT tick but NO resampler found for 26000!")
+        elif not self._category_cache.get(numeric_id):
+             # Only log for instruments we might care about (e.g. not every random equity)
+             pass
 
         # --- ARCHIVE OPTIONS & SPOT TICKS ---
         # Ticks for active/monitored Options and NIFTY Spot reach here after successfully 
@@ -402,7 +408,11 @@ class FundManager:
         # We pull the fully mapped (active/inverse/trade) indicators so logs match strategy view
         self.latest_indicators_state = self._get_mapped_indicators()
 
-        if self.log_heartbeat and not self.is_warming_up and category == InstrumentCategoryType.SPOT:
+        if self.log_heartbeat and category == InstrumentCategoryType.SPOT:
+            if self.is_warming_up:
+                # Silent during warmup as expected
+                return
+
             # Format candle start and end times for clarity
             if ts:
                 start_str = DateUtils.market_timestamp_to_datetime(ts).strftime("%H:%M:%S")

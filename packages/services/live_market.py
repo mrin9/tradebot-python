@@ -205,19 +205,9 @@ class LiveMarketService:
                 nse_fo = [i for i in self.subscribed_instruments if i not in self.nsecm_instruments]
 
                 if nse_eq:
-                    XtsSessionManager.call_api(
-                        "market",
-                        "send_subscription",
-                        instruments=[{"exchangeSegment": 1, "exchangeInstrumentID": i} for i in nse_eq],
-                        xts_message_code=1501,
-                    )
+                    self._send_subscription_batch("send_subscription", nse_eq, 1)
                 if nse_fo:
-                    XtsSessionManager.call_api(
-                        "market",
-                        "send_subscription",
-                        instruments=[{"exchangeSegment": 2, "exchangeInstrumentID": i} for i in nse_fo],
-                        xts_message_code=1501,
-                    )
+                    self._send_subscription_batch("send_subscription", nse_fo, 2)
             
             # Offload blocking HTTP calls from the socket.io event loop
             import threading
