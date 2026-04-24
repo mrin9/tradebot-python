@@ -18,7 +18,7 @@ class DataArchiverService:
     to partitioned Parquet chunks asynchronously.
     """
 
-    def __init__(self, flush_interval_seconds: int = 180):
+    def __init__(self, flush_interval_seconds: int = 600):
         self.tick_queue = queue.Queue()
         self.flush_interval_seconds = flush_interval_seconds
         self.is_running = True

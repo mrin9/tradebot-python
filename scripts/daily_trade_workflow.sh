@@ -84,6 +84,10 @@ case "$1" in
         # 4. Sync Nifty and Options Candle
         $PYTHON_CMD "$CLI_PATH" sync-history --date-range "today"
 
+        # 5. Compact 3-minute ticks into a single daily file
+        echo "Compacting daily tick chunks..."
+        $PYTHON_CMD "$PROJECT_DIR/scripts/compact_ticks.py"
+
         echo "Afternoon Workflow Complete."
         ;;
 

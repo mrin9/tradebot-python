@@ -150,7 +150,7 @@ class FundManager:
 
         self.is_warming_up = False
         self.latest_market_time: float | None = None
-        self.archiver_service = DataArchiverService(flush_interval_seconds=self.global_timeframe)
+        self.archiver_service = DataArchiverService(flush_interval_seconds=600)
 
         # Position Events also invalidate the mapping cache (due to direction-based Active/Inverse mapping)
         def invalidate_mapping_cache(event):
