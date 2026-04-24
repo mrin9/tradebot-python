@@ -252,6 +252,13 @@ class FundManager:
         """
         inst_id = market_data.get("i", market_data.get("instrument_id"))
         
+        # VPS DIAGNOSTIC: Pulse log for Nifty Spot (every 100 ticks)
+        if str(inst_id) == "26000":
+             if not hasattr(self, "_diag_tick_count"): self._diag_tick_count = 0
+             self._diag_tick_count += 1
+             if self._diag_tick_count % 100 == 0:
+                 logger.info(f"💓 [DIAG] Spot Pulse: Received 100 ticks. Latest P={market_data.get('p')}")
+        
         # --- FAST-PATH BYPASS FOR EQ INSTRUMENTS ---
         # If the tick belongs to our explicitly tracked Equity (cash) instruments, 
         # we bypass all heavy strategy logic (resamplers, indicators, DB lookups).
@@ -391,7 +398,8 @@ class FundManager:
         Callback triggered when a specific Category Resampler finalizes a candle.
         """
         inst_id = candle.get("instrument_id", candle.get("i"))
-        logger.info(f"🔔 [DIAG] Candle closed for {category} ({inst_id}) @ {candle.get('t')}")
+        ts_val = candle.get("t", candle.get("timestamp"))
+        logger.info(f"🔔 [DIAG] Candle closed for {category} ({inst_id}) @ {ts_val}")
         
         ts = candle.get("t", candle.get("timestamp"))
         if ts is None:
