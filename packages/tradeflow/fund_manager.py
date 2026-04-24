@@ -251,6 +251,11 @@ class FundManager:
                                price ('p' or 'c'), and timestamp ('t').
         """
         inst_id = market_data.get("i", market_data.get("instrument_id"))
+        price = market_data.get("c", market_data.get("close", market_data.get("p")))
+
+        # 0. Tick Normalization: If this is a raw tick (no OHLC), populate OHLC for downstream archival
+        if price and "p" in market_data and any(k not in market_data for k in ["o", "h", "l", "c"]):
+            market_data.update({"o": price, "h": price, "l": price, "c": price})
         
         # --- FAST-PATH BYPASS FOR EQ INSTRUMENTS ---
         # If the tick belongs to our explicitly tracked Equity (cash) instruments, 
@@ -298,9 +303,7 @@ class FundManager:
         if price is None or price <= 0:
             return
 
-        # 0. Tick Normalization: If this is a raw tick (no OHLC), populate OHLC for downstream compatibility
-        if "p" in market_data and any(k not in market_data for k in ["o", "h", "l", "c"]):
-            market_data.update({"o": price, "h": price, "l": price, "c": price})
+
 
         if inst_id:
             self.latest_tick_prices[int(inst_id)] = price
