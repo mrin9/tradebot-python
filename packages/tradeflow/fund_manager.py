@@ -393,8 +393,10 @@ class FundManager:
     def _on_resampled_candle_closed(self, candle: dict[str, Any], category: InstrumentCategoryType, triggering_tick: dict[str, Any] | None = None) -> None:
         """
         Callback triggered when a specific Category Resampler finalizes a candle.
-        For Triple-Lock, we evaluate the unified state ONLY when the SPOT candle closes.
         """
+        inst_id = candle.get("instrument_id", candle.get("i"))
+        logger.info(f"🔔 [DIAG] Candle closed for {category} ({inst_id}) @ {candle.get('t')}")
+        
         ts = candle.get("t", candle.get("timestamp"))
         if ts is None:
             return

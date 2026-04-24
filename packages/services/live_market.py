@@ -200,9 +200,9 @@ class LiveMarketService:
                 nse_fo = [i for i in self.subscribed_instruments if i not in self.nsecm_instruments]
 
                 if nse_eq:
-                    self._send_subscription_batch("send_subscription", nse_eq, 1)
+                    self._send_subscription_batch(nse_eq, subscribe=True)
                 if nse_fo:
-                    self._send_subscription_batch("send_subscription", nse_fo, 2)
+                    self._send_subscription_batch(nse_fo, subscribe=True)
             
             # Offload blocking HTTP calls from the socket.io event loop
             import threading
