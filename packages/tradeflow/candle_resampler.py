@@ -95,6 +95,15 @@ class CandleResampler:
 
         closed_candle = None
 
+        period_start = (timestamp // self.interval_seconds) * self.interval_seconds
+        
+        if self.symbol == "NIFTY":
+             # Debugging Spot Resampler specifically
+             if self.last_period_start is None:
+                 self.logger.info(f"📍 [DIAG] Resampler Init for {self.symbol}: First period_start={period_start}")
+             elif period_start != self.last_period_start:
+                 self.logger.info(f"🔔 [DIAG] Boundary Crossed! {self.last_period_start} -> {period_start}")
+
         # Check if we have moved to a new aggregation period
         if self.last_period_start is not None and period_start != self.last_period_start:
             if self.current_candle and self.source_candle_count > 0:
