@@ -130,13 +130,8 @@ class LiveMarketService:
                 for i in range(0, len(ids), chunk_size):
                     batch = ids[i : i + chunk_size]
                     payload = [{"exchangeSegment": segment, "exchangeInstrumentID": item} for item in batch]
-                    response = XtsSessionManager.call_api(
-                        "market",
-                        func_name,
-                        instruments=payload,
-                        xts_message_code=1501,
-                    )
-                    logger.info(f"📡 Batch {func_name} (Seg {segment}, Size {len(batch)}): {response}")
+                    response = XtsSessionManager.call_api("market", func_name, instruments=payload, xts_message_code=1501)
+                    logger.info(f"📡 [DIAG] XTS Subscription Response (Seg {segment}, Size {len(batch)}): {response}")
                     
                     # Add a small delay between batches to avoid overwhelming the server
                     if i + chunk_size < len(ids):

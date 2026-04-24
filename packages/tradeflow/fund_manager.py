@@ -251,6 +251,10 @@ class FundManager:
                                price ('p' or 'c'), and timestamp ('t').
         """
         inst_id = market_data.get("i", market_data.get("instrument_id"))
+        
+        # VPS DIAGNOSTIC: Log every Nifty Spot tick
+        if str(inst_id) == "26000":
+             logger.info(f"🎯 [DIAG] Received Nifty Spot Tick: {market_data}")
 
         # --- FAST-PATH BYPASS FOR EQ INSTRUMENTS ---
         # If the tick belongs to our explicitly tracked Equity (cash) instruments, 
