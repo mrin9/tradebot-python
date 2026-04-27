@@ -69,11 +69,20 @@ case "$1" in
             echo "PID file not found. Process might not be running or already stopped."
         fi
 
-        # 2. Rename the logs/app.log
+        # 2. Archive the logs/app.log (Filtered)
         if [ -f "$LOG_FILE" ]; then
             ARCHIVE_LOG="$PROJECT_DIR/logs/$DATE_STR-trade.log"
-            echo "Archiving log to $ARCHIVE_LOG"
-            mv "$LOG_FILE" "$ARCHIVE_LOG"
+            echo "Filtering and archiving logs to $ARCHIVE_LOG"
+            
+            # Extract only trades, heartbeats and session stops
+            # Using -E for extended regex to catch multiple patterns
+            PATTERNS="HEARTBEAT|Entry|Exit|TARGET|Signal|Break-Even|PYRAMID|Stopped\.|Session Summary saved|Settlement"
+            
+            # Append only matching lines. If no lines match, nothing is appended.
+            grep -E "$PATTERNS" "$LOG_FILE" >> "$ARCHIVE_LOG" 2>/dev/null
+            
+            # Remove the original app.log
+            rm "$LOG_FILE"
         else
             echo "app.log not found, nothing to archive."
         fi
