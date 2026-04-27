@@ -272,7 +272,6 @@ class FundManager:
                     "l": market_data.get("l", market_data.get("low")),
                     "c": market_data.get("c", market_data.get("close", market_data.get("p"))),
                     "v": market_data.get("v", market_data.get("volume", 0)),
-                    "q": market_data.get("q", 0),
                     "bid": market_data.get("bid"),
                     "ask": market_data.get("ask"),
                     "t": market_data.get("t", market_data.get("timestamp"))
@@ -389,7 +388,6 @@ class FundManager:
                 "l": market_data.get("low", market_data.get("l")),
                 "c": market_data.get("close", market_data.get("c", market_data.get("p"))),
                 "v": market_data.get("volume", market_data.get("v", 0)),
-                "q": market_data.get("q", 0),
                 "bid": market_data.get("bid"),
                 "ask": market_data.get("ask"),
                 "t": market_data.get("timestamp", market_data.get("t"))
