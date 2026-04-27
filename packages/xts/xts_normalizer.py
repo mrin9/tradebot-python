@@ -221,17 +221,17 @@ class XTSNormalizer:
             raw_ts = XTSNormalizer._get_val(data, "LastUpdateTime", "lut")
         utc_ts = DateUtils.socket_timestamp_to_utc(raw_ts)
 
-        bid_info = data.get("BidInfo")
+        bid_info = XTSNormalizer._get_val(data, "BidInfo", "bi")
         bid = (
             bid_info.get("Price")
             if isinstance(bid_info, dict)
-            else (str(data.get("bi", "")).split("|")[1] if "|" in str(data.get("bi")) else None)
+            else (str(bid_info).split("|")[1] if bid_info and "|" in str(bid_info) else None)
         )
-        ask_info = data.get("AskInfo")
+        ask_info = XTSNormalizer._get_val(data, "AskInfo", "ai")
         ask = (
             ask_info.get("Price")
             if isinstance(ask_info, dict)
-            else (str(data.get("ai", "")).split("|")[1] if "|" in str(data.get("ai")) else None)
+            else (str(ask_info).split("|")[1] if ask_info and "|" in str(ask_info) else None)
         )
 
         try:
@@ -246,11 +246,11 @@ class XTSNormalizer:
             "t": utc_ts,
             "isoDt": DateUtils.market_timestamp_to_iso(utc_ts),
             "p": ltp,
-            "v": last_qty,
-            "q": total_qty,
+            "v": total_qty,
             "bid": bid,
             "ask": ask,
         }
+
 
     @staticmethod
     def normalize_1505_candle_event(data: dict) -> dict:
