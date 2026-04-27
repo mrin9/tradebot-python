@@ -11,6 +11,18 @@ from packages.utils.log_utils import setup_logger
 
 logger = setup_logger(__name__)
 
+TICK_SCHEMA = {
+    "i": pl.Int64,
+    "o": pl.Float64,
+    "h": pl.Float64,
+    "l": pl.Float64,
+    "c": pl.Float64,
+    "v": pl.Int64,
+    "bid": pl.Float64,
+    "ask": pl.Float64,
+    "t": pl.Float64,
+}
+
 
 class DataArchiverService:
     """
@@ -74,7 +86,7 @@ class DataArchiverService:
     def _flush_to_parquet(self, data: list[dict[str, Any]]) -> None:
         """Converts buffer to Polars DF and writes out chunk."""
         try:
-            df = pl.DataFrame(data)
+            df = pl.DataFrame(data, schema=TICK_SCHEMA)
 
             # E.g., ../data/ticks/date=2026-04-22/
             today_str = datetime.now().strftime("%Y-%m-%d")

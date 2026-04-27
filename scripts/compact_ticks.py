@@ -4,6 +4,18 @@ import argparse
 from datetime import datetime
 import polars as pl
 
+TICK_SCHEMA = {
+    "i": pl.Int64,
+    "o": pl.Float64,
+    "h": pl.Float64,
+    "l": pl.Float64,
+    "c": pl.Float64,
+    "v": pl.Int64,
+    "bid": pl.Float64,
+    "ask": pl.Float64,
+    "t": pl.Float64,
+}
+
 def format_size(size_bytes):
     """Formats bytes into a human-readable string."""
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
@@ -58,8 +70,26 @@ def compact_daily_ticks(date_str: str = None):
     full_paths = [os.path.join(base_dir, f) for f in files_to_merge]
     
     try:
-        # scan_parquet is very efficient for multiple files
-        df = pl.scan_parquet(full_paths).collect()
+        # 3. Read and Merge
+        # We read files individually and cast them to ensure compatibility (Null vs Float64)
+        # scan_parquet is faster but fails on schema mismatches which occur when some files have only Nulls for bid/ask.
+        dfs = []
+        for path in full_paths:
+            df_part = pl.read_parquet(path)
+            
+            # Find columns that need casting
+            cast_cols = {}
+            for col, dtype in TICK_SCHEMA.items():
+                if col in df_part.columns and df_part[col].dtype != dtype:
+                    cast_cols[col] = dtype
+            
+            if cast_cols:
+                df_part = df_part.with_columns([pl.col(c).cast(t) for c, t in cast_cols.items()])
+            
+            dfs.append(df_part)
+            
+        # Use how="diagonal" to safely handle files that might be missing some columns entirely
+        df = pl.concat(dfs, how="diagonal")
         
         # Sort by timestamp to ensure chronological order regardless of file naming
         if "t" in df.columns:
